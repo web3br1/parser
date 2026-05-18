@@ -1,0 +1,20 @@
+{
+  "input": "Segunda: 9h às 18h.",
+  "fact_type": "business_hours",
+  "expected_output": {
+    "status": "ok",
+    "data": {
+      "day_of_week": "mon",
+      "open_time": "09:00",
+      "close_time": "18:00",
+      "is_closed": false,
+      "special_case": null
+    },
+    "evidence_span": {
+      "quote": "Segunda: 9h às 18h",
+      "char_start": null,
+      "char_end": null
+    },
+    "ambiguities": []
+  }
+}

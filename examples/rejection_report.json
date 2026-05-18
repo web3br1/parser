@@ -1,0 +1,13 @@
+{
+  "input_description": "PDF escaneado de tabela de preços fotografada",
+  "expected_quality_report": {
+    "status": "rejected",
+    "reason": "low_text_volume",
+    "metrics": {
+      "char_count": 124,
+      "short_lines_ratio": 0.87,
+      "avg_line_length": 4.2
+    }
+  },
+  "expected_user_message": "O arquivo tem texto extraível, mas a estrutura está quebrada. Envie um PDF editável, DOCX ou cole o conteúdo manualmente."
+}

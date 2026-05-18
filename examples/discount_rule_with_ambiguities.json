@@ -1,0 +1,17 @@
+{
+  "input": "Clientes antigos têm desconto especial no Pix.",
+  "fact_type": "discount_rule",
+  "expected_output": {
+    "status": "failed",
+    "data": null,
+    "evidence_span": {
+      "quote": "Clientes antigos têm desconto especial no Pix.",
+      "char_start": null,
+      "char_end": null
+    },
+    "ambiguities": [
+      "O que define cliente antigo?",
+      "Qual é o percentual ou valor fixo do desconto?"
+    ]
+  }
+}

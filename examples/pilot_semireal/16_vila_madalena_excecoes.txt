@@ -1,0 +1,21 @@
+Excecoes operacionais - Vila Madalena
+
+Unidade Vila Madalena - excecoes temporarias para reforma.
+
+Entre 2026-06-01 e 2026-06-15, a unidade abre as 11:00 e fecha as 17:00.
+
+Durante a reforma, servicos de quimica ficam suspensos.
+
+Clientes com agendamento de coloracao nesse periodo devem ser remanejados para Jardins.
+
+Manicure, pedicure, corte e escova seguem disponiveis com agenda reduzida.
+
+Nao divulgar promocao antiga de 20% para Pix; essa campanha foi encerrada em 2026-04-30.
+
+Entre 2026-06-10 e 2026-06-12, a sala de manicure ficara indisponivel por manutencao eletrica.
+
+Clientes remanejados para Jardins mantem o preco originalmente contratado em Vila Madalena.
+
+Durante a reforma, nao aceitar encaixes para servicos acima de 60 minutos.
+
+A partir de 2026-06-16, a unidade retorna ao horario regular de segunda a sabado, 10:00 as 19:00.

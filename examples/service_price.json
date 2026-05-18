@@ -1,0 +1,23 @@
+{
+  "input": "Limpeza de pele custa R$120.",
+  "fact_type": "service_price",
+  "expected_output": {
+    "status": "ok",
+    "data": {
+      "service_name": "Limpeza de pele",
+      "price_amount": 120,
+      "currency": "BRL",
+      "price_type": "fixed",
+      "min_price": null,
+      "max_price": null,
+      "valid_from": null,
+      "valid_until": null
+    },
+    "evidence_span": {
+      "quote": "Limpeza de pele custa R$120",
+      "char_start": null,
+      "char_end": null
+    },
+    "ambiguities": []
+  }
+}

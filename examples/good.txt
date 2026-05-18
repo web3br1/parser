@@ -1,0 +1,4 @@
+Servico: Corte feminino
+Preco: R$ 120
+Horario: Segunda a sexta, 09:00 as 18:00
+Pagamento: pix e cartao

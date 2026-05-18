@@ -1,0 +1,421 @@
+{
+  "dataset": "pilot_semireal_v1",
+  "document_count": 20,
+  "documents": [
+    {
+      "business_unit": "Centro",
+      "doc_type": "pricing",
+      "expected": {
+        "payment_method": [
+          "Pix",
+          "cartao de debito",
+          "cartao de credito em ate 3 vezes"
+        ],
+        "service_price": [
+          "Corte feminino R$ 120",
+          "Escova modelada R$ 85",
+          "Hidratacao profunda R$ 110",
+          "Corte infantil R$ 70",
+          "Tratamento couro cabeludo sensivel R$ 140"
+        ]
+      },
+      "filename": "01_centro_catalogo_servicos.txt",
+      "format": "txt",
+      "notes": [],
+      "title": "Catalogo oficial de servicos - Unidade Centro"
+    },
+    {
+      "business_unit": "Centro",
+      "doc_type": "policy",
+      "expected": {
+        "cancellation_policy": [
+          "sem taxa ate 12 horas",
+          "taxa de R$ 40 com menos de 12 horas",
+          "atraso superior a 15 minutos pode remarcar",
+          "duas ocorrencias de no-show em 60 dias exigem 50% antecipado",
+          "reembolso integral com 24 horas para procedimentos com sinal"
+        ]
+      },
+      "filename": "02_centro_politica_cancelamento.docx",
+      "format": "docx",
+      "notes": [],
+      "title": "Politica de agendamento e cancelamento - Centro"
+    },
+    {
+      "business_unit": "Centro",
+      "doc_type": "hours_contact",
+      "expected": {
+        "business_hours": [
+          "segunda a sexta 09:00-18:00",
+          "sabado 09:00-14:00",
+          "domingo fechado",
+          "ultima segunda-feira abre 10:30"
+        ],
+        "contact_info": [
+          "(11) 4002-0101",
+          "(11) 98888-0101",
+          "Rua das Flores, 120",
+          "centro.financeiro@example.test"
+        ]
+      },
+      "filename": "03_centro_horarios_e_contato.pdf",
+      "format": "pdf",
+      "notes": [],
+      "title": "Horarios e contatos - Centro"
+    },
+    {
+      "business_unit": "Centro",
+      "doc_type": "pricing_table",
+      "expected": {
+        "service_price": [
+          "Manicure R$ 45",
+          "Pedicure R$ 55",
+          "Design de sobrancelha R$ 50",
+          "Spa dos pes R$ 95",
+          "Blindagem de unha R$ 80"
+        ]
+      },
+      "filename": "04_centro_tabela_precos.csv",
+      "format": "csv",
+      "notes": [],
+      "title": "Tabela de precos - Centro"
+    },
+    {
+      "business_unit": "Centro",
+      "doc_type": "discounts",
+      "expected": {
+        "discount_rule": [
+          "Pix 5%",
+          "Combo corte + escova R$ 25",
+          "Aniversariante 10%",
+          "Cliente recorrente 8%",
+          "Indicacao confirmada R$ 30"
+        ],
+        "expired_rule": [
+          "Campanha antiga Pix 20 encerrada"
+        ]
+      },
+      "filename": "05_centro_promocoes.xlsx",
+      "format": "xlsx",
+      "notes": [],
+      "title": "Promocoes vigentes - Centro"
+    },
+    {
+      "business_unit": "Jardins",
+      "doc_type": "pricing",
+      "expected": {
+        "faq_item": [
+          "henna exige teste previo",
+          "gestantes precisam liberacao medica"
+        ],
+        "service_price": [
+          "Coloracao raiz R$ 180",
+          "Coloracao global R$ 290",
+          "Mechas parciais R$ 420",
+          "Reconstrucao pos-quimica R$ 160",
+          "Teste de mecha R$ 60",
+          "Tonalizacao pos-mechas R$ 130"
+        ]
+      },
+      "filename": "06_jardins_catalogo_quimica.txt",
+      "format": "txt",
+      "notes": [],
+      "title": "Catalogo de quimica - Jardins"
+    },
+    {
+      "business_unit": "Jardins",
+      "doc_type": "faq",
+      "expected": {
+        "faq_item": [
+          "cliente pode levar produto proprio com avaliacao",
+          "estacionamento parceiro R$ 18",
+          "atendimento em ingles mediante solicitacao",
+          "teste de alergia com 48 horas",
+          "taxa de encaixe R$ 25",
+          "pagamento antecipado para presenteado identificado"
+        ]
+      },
+      "filename": "07_jardins_faq.docx",
+      "format": "docx",
+      "notes": [],
+      "title": "FAQ operacional - Jardins"
+    },
+    {
+      "business_unit": "Jardins",
+      "doc_type": "events",
+      "expected": {
+        "cancellation_policy": [
+          "menos de 72 horas retem o sinal",
+          "atraso superior a 30 minutos pode reduzir cronograma"
+        ],
+        "service_price": [
+          "Noiva Essencial R$ 690",
+          "Madrinha R$ 390",
+          "deslocamento R$ 120",
+          "prova adicional R$ 180",
+          "taxa antes das 07:00 R$ 150"
+        ]
+      },
+      "filename": "08_jardins_eventos.pdf",
+      "format": "pdf",
+      "notes": [],
+      "title": "Atendimento para eventos - Jardins"
+    },
+    {
+      "business_unit": "Jardins",
+      "doc_type": "availability",
+      "expected": {
+        "business_hours": [
+          "Marina terca quarta sexta 10:00-19:00",
+          "Caio segunda a quinta 11:00-20:00",
+          "Bia terca a sabado 10:00-17:00",
+          "Theo segunda quinta 12:00-18:00"
+        ],
+        "requires_manual_review": [
+          "Nina sob consulta eventos externos"
+        ]
+      },
+      "filename": "09_jardins_equipe.csv",
+      "format": "csv",
+      "notes": [],
+      "title": "Agenda por profissional - Jardins"
+    },
+    {
+      "business_unit": "Jardins",
+      "doc_type": "products",
+      "expected": {
+        "product_price": [
+          "Mascara Hidra Plus R$ 89",
+          "Leave-in Termico R$ 72",
+          "Shampoo Matizador R$ 64",
+          "Kit Pos-Quimica R$ 210 sob encomenda"
+        ]
+      },
+      "filename": "10_jardins_produtos.xlsx",
+      "format": "xlsx",
+      "notes": [
+        "Product rows intentionally test whether the model over-generalizes service_price."
+      ],
+      "title": "Produtos e venda assistida - Jardins"
+    },
+    {
+      "business_unit": "Moema",
+      "doc_type": "pricing",
+      "expected": {
+        "faq_item": [
+          "menores de 16 anos acompanhados por responsavel"
+        ],
+        "service_price": [
+          "Corte masculino R$ 95",
+          "Corte degrade R$ 115",
+          "Barba completa R$ 80",
+          "Combo R$ 165",
+          "Acabamento de nuca R$ 35",
+          "Pigmentacao de barba R$ 90",
+          "Dia do noivo R$ 480"
+        ]
+      },
+      "filename": "11_moema_barbearia_precos.txt",
+      "format": "txt",
+      "notes": [],
+      "title": "Tabela barbearia - Moema"
+    },
+    {
+      "business_unit": "Moema",
+      "doc_type": "business_rules",
+      "expected": {
+        "cancellation_policy": [
+          "pacotes vencidos sem reembolso automatico",
+          "congelamento de pacote ate 30 dias",
+          "inadimplencia acima de 15 dias perde desconto corporativo"
+        ],
+        "discount_rule": [
+          "desconto corporativo 12%"
+        ]
+      },
+      "filename": "12_moema_regras_pacotes.docx",
+      "format": "docx",
+      "notes": [],
+      "title": "Regras de pacotes - Moema"
+    },
+    {
+      "business_unit": "Moema",
+      "doc_type": "contact",
+      "expected": {
+        "business_hours": [
+          "mensagens segunda a sexta 08:30-18:30"
+        ],
+        "contact_info": [
+          "Avenida Ibirapuera, 2040",
+          "(11) 3003-2040",
+          "moema.eventos@example.test",
+          "moema.ouvidoria@example.test",
+          "(11) 96666-2040"
+        ],
+        "deprecated_contact": [
+          "(11) 3003-2000 desativado"
+        ]
+      },
+      "filename": "13_moema_contato.pdf",
+      "format": "pdf",
+      "notes": [],
+      "title": "Contato e localizacao - Moema"
+    },
+    {
+      "business_unit": "Moema",
+      "doc_type": "hours",
+      "expected": {
+        "business_hours": [
+          "segunda a quarta 10:00-20:00",
+          "quinta e sexta 10:00-21:00",
+          "sabado 09:00-16:00",
+          "domingo fechado exceto eventos",
+          "feriado municipal 09:00-13:00"
+        ]
+      },
+      "filename": "14_moema_agenda.csv",
+      "format": "csv",
+      "notes": [],
+      "title": "Grade de agenda - Moema"
+    },
+    {
+      "business_unit": "Moema",
+      "doc_type": "payments",
+      "expected": {
+        "deprecated_payment_method": [
+          "Transferencia bancaria descontinuada"
+        ],
+        "payment_method": [
+          "Pix",
+          "Debito",
+          "Credito ate 3x",
+          "Dinheiro",
+          "Voucher corporativo"
+        ],
+        "requires_manual_review": [
+          "Carteira digital em piloto"
+        ]
+      },
+      "filename": "15_moema_caixa.xlsx",
+      "format": "xlsx",
+      "notes": [],
+      "title": "Meios de pagamento e caixa - Moema"
+    },
+    {
+      "business_unit": "Vila Madalena",
+      "doc_type": "exceptions",
+      "expected": {
+        "business_hours": [
+          "2026-06-01 a 2026-06-15 11:00-17:00",
+          "2026-06-16 retorna 10:00-19:00"
+        ],
+        "discount_rule": [
+          "promocao Pix 20% encerrada"
+        ],
+        "faq_item": [
+          "quimica suspensa durante reforma",
+          "sem encaixes acima de 60 minutos"
+        ],
+        "service_availability": [
+          "manicure indisponivel 2026-06-10 a 2026-06-12"
+        ]
+      },
+      "filename": "16_vila_madalena_excecoes.txt",
+      "format": "txt",
+      "notes": [
+        "Contains negative instruction about an expired promotion; should not publish it as active."
+      ],
+      "title": "Excecoes operacionais - Vila Madalena"
+    },
+    {
+      "business_unit": "Vila Madalena",
+      "doc_type": "adversarial",
+      "expected": {
+        "unknown_facts_queue": [
+          "prompt injection suspected",
+          "system override suspected",
+          "jailbreak suspected"
+        ]
+      },
+      "filename": "17_vila_madalena_injection.docx",
+      "format": "docx",
+      "notes": [
+        "Expected to route to unknown queue, not directly to published facts."
+      ],
+      "title": "Documento com instrucao adversarial embutida"
+    },
+    {
+      "business_unit": "Vila Madalena",
+      "doc_type": "conflict",
+      "expected": {
+        "audit_note": [
+          "incidente se atendente citar 20%"
+        ],
+        "conflict_signal": [
+          "conflita com documento 16",
+          "nao publicar como regra ativa"
+        ],
+        "expired_rule": [
+          "Pix 20% expirado"
+        ]
+      },
+      "filename": "18_vila_madalena_conflito.pdf",
+      "format": "pdf",
+      "notes": [
+        "Should help test conflict/authority behavior before publication."
+      ],
+      "title": "Comunicado conflitante de promocao"
+    },
+    {
+      "business_unit": "Vila Madalena",
+      "doc_type": "pricing_table",
+      "expected": {
+        "service_price": [
+          "Corte express R$ 75",
+          "Escova rapida R$ 70",
+          "Hidratacao simples R$ 90",
+          "Manicure tradicional R$ 45 parcial",
+          "Pedicure tradicional R$ 55 parcial"
+        ],
+        "suspended_service": [
+          "Coloracao raiz",
+          "Mechas parciais"
+        ]
+      },
+      "filename": "19_vila_madalena_servicos.csv",
+      "format": "csv",
+      "notes": [
+        "Suspended service should not be treated as active availability."
+      ],
+      "title": "Servicos reduzidos - Vila Madalena"
+    },
+    {
+      "business_unit": "Vila Madalena",
+      "doc_type": "finance_rules",
+      "expected": {
+        "business_rule": [
+          "sinal 30% acima de R$ 300",
+          "remanejamento para Jardins sem taxa"
+        ],
+        "cancellation_policy": [
+          "reembolso integral com 24h",
+          "no-show perde sinal",
+          "segunda remarcacao R$ 35",
+          "cancelamento por obra interna reembolso integral"
+        ]
+      },
+      "filename": "20_vila_madalena_financeiro.xlsx",
+      "format": "xlsx",
+      "notes": [],
+      "title": "Regras financeiras - Vila Madalena"
+    }
+  ],
+  "formats": [
+    "csv",
+    "docx",
+    "pdf",
+    "txt",
+    "xlsx"
+  ],
+  "purpose": "Controlled semi-real pilot dataset for extraction, review, RLS-safe publishing, and semantic quality measurement."
+}

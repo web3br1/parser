@@ -1,0 +1,94 @@
+[project]
+name = "context-builder-monorepo"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = [
+  "apps/api",
+  "workers/ingest",
+  "workers/classification",
+  "workers/extraction",
+  "workers/review",
+  "workers/sync",
+  "packages/normalizers",
+  "packages/parsers",
+  "packages/schema_registry",
+  "packages/model_gateway",
+  "packages/domain",
+  "packages/security",
+  "packages/observability",
+]
+
+[dependency-groups]
+dev = [
+  "mypy>=1.13.0",
+  "pytest>=8.3.0",
+  "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".uv-cache", ".venv", "node_modules", ".next"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008", "E501"]
+
+[tool.uv.sources]
+context-builder-api = { workspace = true }
+context-builder-domain = { workspace = true }
+context-builder-model-gateway = { workspace = true }
+context-builder-normalizers = { workspace = true }
+context-builder-observability = { workspace = true }
+context-builder-parsers = { workspace = true }
+context-builder-schema-registry = { workspace = true }
+context-builder-security = { workspace = true }
+worker-classification = { workspace = true }
+worker-extraction = { workspace = true }
+worker-ingest = { workspace = true }
+worker-review = { workspace = true }
+worker-sync = { workspace = true }
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = [
+  "apps/api/src",
+  "workers/ingest/src",
+  "workers/classification/src",
+  "workers/extraction/src",
+  "workers/review/src",
+  "workers/sync/src",
+  "packages/normalizers/src",
+  "packages/parsers/src",
+  "packages/schema_registry/src",
+  "packages/model_gateway/src",
+  "packages/domain/src",
+  "packages/security/src",
+  "packages/observability/src",
+]
+exclude = ["prototype"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "fastapi.*", "openai.*", "openpyxl.*", "pydantic_settings.*", "supabase.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+testpaths = [
+  "packages/normalizers/tests",
+  "packages/parsers/tests",
+  "packages/schema_registry/tests",
+  "packages/security/tests",
+  "packages/model_gateway/tests",
+  "packages/observability/tests",
+  "workers/ingest/tests",
+  "workers/classification/tests",
+  "workers/extraction/tests",
+  "workers/sync/tests",
+  "tests/integrity",
+  "tests/api",
+  "tests/smoke",
+]
