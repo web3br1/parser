@@ -33,6 +33,7 @@ SUPABASE_POOLER_DB_URL = (
     or os.getenv("SUPABASE_IPV4_DB_URL")
     or os.getenv("DATABASE_POOLER_URL")
 )
+PSQL_BIN = os.getenv("PSQL_BIN") or os.getenv("SUPABASE_PSQL_BIN") or ""
 SUPABASE_ACCESS_TOKEN = os.getenv("SUPABASE_ACCESS_TOKEN", "")
 SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
 WORKSPACE_STORAGE_BUCKET = os.getenv("WORKSPACE_STORAGE_BUCKET", "context-builder-private")
@@ -153,13 +154,14 @@ def require_env() -> None:
         }.items()
         if not value
     ]
-    can_run_sql_with_psql = bool(_database_urls() and shutil.which("psql"))
+    can_run_sql_with_psql = bool(_database_urls() and _psql_command())
     can_run_sql_with_management_api = bool(SUPABASE_ACCESS_TOKEN and _project_ref())
     if not (can_run_sql_with_psql or can_run_sql_with_management_api):
         missing.append(
-            "SQL access: install psql and set SUPABASE_DB_URL/DATABASE_URL "
-            "(or SUPABASE_POOLER_DB_URL for IPv4/pooler), or set SUPABASE_ACCESS_TOKEN "
-            "with SUPABASE_PROJECT_REF/project ref in SUPABASE_URL for Management API fallback"
+            "SQL access: install psql or set PSQL_BIN/SUPABASE_PSQL_BIN and "
+            "SUPABASE_DB_URL/DATABASE_URL (or SUPABASE_POOLER_DB_URL for IPv4/pooler), "
+            "or set SUPABASE_ACCESS_TOKEN with SUPABASE_PROJECT_REF/project ref in "
+            "SUPABASE_URL for Management API fallback"
         )
     if missing:
         fail(f"Missing required env: {', '.join(missing)}")
@@ -182,8 +184,14 @@ def _database_urls() -> list[str]:
     return urls
 
 
+def _psql_command() -> str:
+    if PSQL_BIN and Path(PSQL_BIN).exists():
+        return PSQL_BIN
+    return shutil.which("psql") or ""
+
+
 def _use_psql() -> bool:
-    return bool(_database_urls() and shutil.which("psql"))
+    return bool(_database_urls() and _psql_command())
 
 
 def run_sql(sql: str) -> list[str]:
@@ -192,7 +200,7 @@ def run_sql(sql: str) -> list[str]:
         for database_url in _database_urls():
             completed = subprocess.run(
                 [
-                    "psql",
+                    _psql_command(),
                     database_url,
                     "--no-align",
                     "--tuples-only",

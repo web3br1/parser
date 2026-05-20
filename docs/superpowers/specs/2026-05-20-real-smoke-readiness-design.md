@@ -23,7 +23,7 @@ The script must inspect:
 
 - `.env` exists by default, with `--env-file` override.
 - Required variables are present: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-- SQL access is actionable through either `psql` on `PATH` plus `SUPABASE_DB_URL` / `DATABASE_URL`, `psql` on `PATH` plus `SUPABASE_POOLER_DB_URL` / `SUPABASE_IPV4_DB_URL` / `DATABASE_POOLER_URL`, or `SUPABASE_ACCESS_TOKEN` plus a project ref from `SUPABASE_PROJECT_REF` or `SUPABASE_URL`.
+- SQL access is actionable through either `psql` on `PATH` or `PSQL_BIN` / `SUPABASE_PSQL_BIN` plus `SUPABASE_DB_URL` / `DATABASE_URL`, `psql` on `PATH` or `PSQL_BIN` / `SUPABASE_PSQL_BIN` plus `SUPABASE_POOLER_DB_URL` / `SUPABASE_IPV4_DB_URL` / `DATABASE_POOLER_URL`, or `SUPABASE_ACCESS_TOKEN` plus a project ref from `SUPABASE_PROJECT_REF` or `SUPABASE_URL`.
 - `WORKSPACE_STORAGE_BUCKET` resolves to `context-builder-private`.
 - `REDIS_URL` is present unless `--allow-missing-redis` is passed.
 - `SMOKE_REPORT_JSON` is present or `--report-json` is provided.
@@ -38,6 +38,7 @@ python scripts/smoke/real_readiness.py
 python scripts/smoke/real_readiness.py --json
 python scripts/smoke/real_readiness.py --env-file .env.real --report-json .run/smoke-full.json
 python scripts/smoke/real_readiness.py --allow-missing-redis
+python scripts/smoke/real_readiness.py --psql-bin "C:/Program Files/PostgreSQL/16/bin/psql.exe"
 ```
 
 Exit code:

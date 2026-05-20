@@ -153,8 +153,16 @@ python scripts/smoke/real_readiness.py --json
 
 Este passo valida apenas pre-condicoes locais e nao chama Supabase. Ele nao
 substitui `check_supabase_contracts.py`, que continua validando contratos
-remotos de schema, bucket e RPCs. Para SQL, ele exige `psql` no `PATH` junto
-de uma DB URL, ou `SUPABASE_ACCESS_TOKEN` com project ref.
+remotos de schema, bucket e RPCs. Para SQL, ele exige `psql` no `PATH` ou
+`PSQL_BIN` junto de uma DB URL, ou `SUPABASE_ACCESS_TOKEN` com project ref.
+
+Se `psql` existir fora do `PATH`, configure o caminho explicitamente:
+
+```powershell
+$env:PSQL_BIN="C:\Program Files\PostgreSQL\16\bin\psql.exe"
+python scripts/smoke/real_readiness.py --psql-bin "$env:PSQL_BIN"
+python scripts/smoke/check_supabase_contracts.py
+```
 
 Na raiz:
 

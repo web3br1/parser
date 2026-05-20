@@ -46,7 +46,7 @@ def build_report(checks: Sequence[Check]) -> dict[str, object]
 def main(argv: Sequence[str] | None = None) -> int
 ```
 
-Hard failures: missing env file, missing required secrets by name, no SQL access path (`psql` plus database URL, or access token plus project ref), wrong bucket, missing Supabase config, migration sequence gaps, missing required scripts.
+Hard failures: missing env file, missing required secrets by name, no SQL access path (`psql` or `PSQL_BIN` plus database URL, or access token plus project ref), wrong bucket, missing Supabase config, migration sequence gaps, missing required scripts.
 
 Warnings: missing Redis only when `--allow-missing-redis`, missing JSON report path.
 

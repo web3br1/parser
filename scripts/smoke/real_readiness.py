@@ -31,6 +31,7 @@ POOLER_SQL_VARS = (
     "SUPABASE_IPV4_DB_URL",
     "DATABASE_POOLER_URL",
 )
+PSQL_BIN_VARS = ("PSQL_BIN", "SUPABASE_PSQL_BIN")
 REQUIRED_BUCKET = "context-builder-private"
 REQUIRED_SCRIPTS = (
     "scripts/smoke/check_supabase_contracts.py",
@@ -73,6 +74,16 @@ def _project_ref_from_url(value: str) -> bool:
         return False
     project_ref = host[: -len(".supabase.co")]
     return bool(project_ref and "." not in project_ref)
+
+
+def _configured_psql(env: Mapping[str, str]) -> tuple[bool, str]:
+    for name in PSQL_BIN_VARS:
+        value = env.get(name, "").strip()
+        if value and Path(value).exists():
+            return True, name
+    if shutil.which("psql"):
+        return True, "PATH"
+    return False, ""
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -147,14 +158,14 @@ def _check_required_env(env: Mapping[str, str]) -> Check:
 
 
 def _check_sql_access(env: Mapping[str, str]) -> Check:
-    has_psql = shutil.which("psql") is not None
+    has_psql, psql_source = _configured_psql(env)
     direct = [name for name in DIRECT_SQL_VARS if _has_value(env, name)]
     if direct and has_psql:
         return Check(
             "sql_access",
             "ok",
             "SQL access can use a direct database URL",
-            {"mode": "direct", "variables": direct},
+            {"mode": "direct", "variables": direct, "psql_source": psql_source},
         )
 
     pooler = [name for name in POOLER_SQL_VARS if _has_value(env, name)]
@@ -163,7 +174,7 @@ def _check_sql_access(env: Mapping[str, str]) -> Check:
             "sql_access",
             "ok",
             "SQL access can use a pooler database URL",
-            {"mode": "pooler", "variables": pooler},
+            {"mode": "pooler", "variables": pooler, "psql_source": psql_source},
         )
 
     has_project_ref = _has_value(env, "SUPABASE_PROJECT_REF") or _project_ref_from_url(
@@ -188,16 +199,19 @@ def _check_sql_access(env: Mapping[str, str]) -> Check:
     return Check(
         "sql_access",
         "fail",
-        "No SQL access path found; set a database URL, pooler URL, or access token with project ref",
+        "No SQL access path found; set psql on PATH or PSQL_BIN with a database URL, or set access token with project ref",
         {
             "accepted_variable_groups": [
                 [*DIRECT_SQL_VARS, "psql"],
                 [*POOLER_SQL_VARS, "psql"],
+                [*DIRECT_SQL_VARS, *PSQL_BIN_VARS],
+                [*POOLER_SQL_VARS, *PSQL_BIN_VARS],
                 ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF"],
                 ["SUPABASE_ACCESS_TOKEN", "SUPABASE_URL"],
             ],
             "db_url_present": bool(direct or pooler),
-            "psql_on_path": has_psql,
+            "psql_available": has_psql,
+            "psql_bin_variables": list(PSQL_BIN_VARS),
         },
     )
 
@@ -343,10 +357,13 @@ def collect_checks(
     *,
     report_json: str | None,
     allow_missing_redis: bool,
+    psql_bin: str | None = None,
 ) -> list[Check]:
     root = root.resolve()
     env_file = env_file if env_file.is_absolute() else root / env_file
     env = merged_env(env_file, environ)
+    if psql_bin:
+        env["PSQL_BIN"] = psql_bin
 
     return [
         _check_env_file(root, env_file),
@@ -411,6 +428,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Warn instead of failing when REDIS_URL is absent",
     )
+    parser.add_argument(
+        "--psql-bin",
+        default=None,
+        help="Path to psql executable when it is not on PATH",
+    )
     args = parser.parse_args(argv)
 
     root = _repo_root()
@@ -421,6 +443,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         os.environ,
         report_json=args.report_json,
         allow_missing_redis=args.allow_missing_redis,
+        psql_bin=args.psql_bin,
     )
 
     report = build_report(checks)

@@ -13,7 +13,7 @@ python scripts/smoke/real_readiness.py --json
 
 O readiness valida pre-condicoes locais e nao chama Supabase. Ele nao substitui
 `check_supabase_contracts.py`, que continua sendo o gate remoto de contratos.
-Para SQL, ele exige `psql` no `PATH` junto de uma DB URL, ou
+Para SQL, ele exige `psql` no `PATH` ou `PSQL_BIN` junto de uma DB URL, ou
 `SUPABASE_ACCESS_TOKEN` com project ref.
 
 Contratos estaticos:
@@ -43,13 +43,21 @@ $env:SMOKE_REPORT_JSON=".run\smoke-full.json"
 python scripts/smoke/supabase_smoke.py --full
 ```
 
+Se `psql` estiver instalado fora do `PATH`, aponte diretamente:
+
+```powershell
+$env:PSQL_BIN="C:\Program Files\PostgreSQL\16\bin\psql.exe"
+python scripts/smoke/real_readiness.py --psql-bin "$env:PSQL_BIN"
+python scripts/smoke/check_supabase_contracts.py
+```
+
 ## Antes de rodar
 
 - `.env` local existe e foi criado a partir de `.env.example`.
 - `WORKSPACE_STORAGE_BUCKET=context-builder-private`.
 - Migrations `000-045` foram aplicadas.
 - Bucket `context-builder-private` existe e e privado.
-- SQL esta acionavel via `psql` + DB URL, ou via `SUPABASE_ACCESS_TOKEN` + project ref.
+- SQL esta acionavel via `psql`/`PSQL_BIN` + DB URL, ou via `SUPABASE_ACCESS_TOKEN` + project ref.
 - Redis esta acessivel via `REDIS_URL`.
 - Stack local esta de pe:
 

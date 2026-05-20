@@ -203,6 +203,50 @@ def test_contract_check_accepts_pooler_url_when_psql_exists(
     check_contracts.require_env()
 
 
+def test_contract_check_accepts_configured_psql_bin(
+    check_contracts,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    psql_bin = tmp_path / "psql.exe"
+    psql_bin.write_text("fake psql\n", encoding="utf-8")
+    monkeypatch.setattr(check_contracts.shutil, "which", lambda name: None)
+    check_contracts.SUPABASE_DB_URL = "postgresql://direct.example/postgres"
+    check_contracts.SUPABASE_POOLER_DB_URL = ""
+    check_contracts.SUPABASE_ACCESS_TOKEN = ""
+    check_contracts.PSQL_BIN = str(psql_bin)
+
+    check_contracts.require_env()
+
+
+def test_contract_check_uses_configured_psql_bin(
+    check_contracts,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    psql_bin = tmp_path / "psql.exe"
+    psql_bin.write_text("fake psql\n", encoding="utf-8")
+    calls: list[list[str]] = []
+
+    class Completed:
+        returncode = 0
+        stdout = "ok\n"
+        stderr = ""
+
+    def fake_run(args: list[str], **_kwargs: object) -> Completed:
+        calls.append(args)
+        return Completed()
+
+    monkeypatch.setattr(check_contracts.shutil, "which", lambda name: None)
+    monkeypatch.setattr(check_contracts.subprocess, "run", fake_run)
+    check_contracts.SUPABASE_DB_URL = "postgresql://direct.example/postgres"
+    check_contracts.SUPABASE_POOLER_DB_URL = ""
+    check_contracts.PSQL_BIN = str(psql_bin)
+
+    assert check_contracts.run_sql("select 1") == ["ok"]
+    assert calls[0][0] == str(psql_bin)
+
+
 def test_contract_check_rejects_client_write_privileges(
     check_contracts,
     monkeypatch: pytest.MonkeyPatch,

@@ -161,3 +161,19 @@ def test_db_url_without_psql_or_access_token_is_not_actionable(tmp_path: Path) -
     assert report["status"] == "failed"
     assert "psql" in rendered
     assert "SUPABASE_DB_URL" in rendered
+
+
+def test_configured_psql_bin_makes_db_url_actionable(tmp_path: Path) -> None:
+    module = load_real_readiness()
+    module.shutil.which = lambda _name: None
+    psql_bin = tmp_path / "tools" / "psql.exe"
+    psql_bin.parent.mkdir()
+    psql_bin.write_text("fake psql\n", encoding="utf-8")
+    env_file = write_ready_project(
+        tmp_path,
+        env_overrides={"PSQL_BIN": psql_bin.as_posix()},
+    )
+
+    _checks, report = collect_report(module, tmp_path, env_file)
+
+    assert report["status"] == "passed"
