@@ -4,6 +4,18 @@ Procedimento da TASK-010 para validar o ambiente Supabase real.
 
 ## Comandos oficiais
 
+Readiness local:
+
+```bash
+python scripts/smoke/real_readiness.py
+python scripts/smoke/real_readiness.py --json
+```
+
+O readiness valida pre-condicoes locais e nao chama Supabase. Ele nao substitui
+`check_supabase_contracts.py`, que continua sendo o gate remoto de contratos.
+Para SQL, ele exige `psql` no `PATH` junto de uma DB URL, ou
+`SUPABASE_ACCESS_TOKEN` com project ref.
+
 Contratos estaticos:
 
 ```bash
@@ -35,8 +47,9 @@ python scripts/smoke/supabase_smoke.py --full
 
 - `.env` local existe e foi criado a partir de `.env.example`.
 - `WORKSPACE_STORAGE_BUCKET=context-builder-private`.
-- Migrations `000-033` foram aplicadas.
+- Migrations `000-045` foram aplicadas.
 - Bucket `context-builder-private` existe e e privado.
+- SQL esta acionavel via `psql` + DB URL, ou via `SUPABASE_ACCESS_TOKEN` + project ref.
 - Redis esta acessivel via `REDIS_URL`.
 - Stack local esta de pe:
 
@@ -188,6 +201,7 @@ python scripts/smoke/cleanup_smoke.py
 
 ## Checklist de aceite
 
+- [ ] Readiness local passa.
 - [ ] Contratos estaticos passam.
 - [ ] Smoke minimo passa.
 - [ ] Smoke completo passa depois do minimo.

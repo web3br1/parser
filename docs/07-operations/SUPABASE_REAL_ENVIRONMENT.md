@@ -5,7 +5,7 @@ Documento operacional da TASK-010 para provisionar e validar um ambiente Supabas
 ## Principios
 
 - Use um projeto Supabase dev separado de producao.
-- Aplique migrations `000` a `042`, em ordem.
+- Aplique migrations `000` a `045`, em ordem.
 - Crie o bucket privado `context-builder-private`.
 - Execute a stack local com `scripts/dev/start_local_stack.ps1`.
 - Rode smoke minimo antes de `--full`.
@@ -79,6 +79,9 @@ Migrations esperadas:
 040_lock_down_storage_read_policy.sql
 041_lock_down_client_writes.sql
 042_storage_file_size_100mb.sql
+043_lock_down_storage_client_writes.sql
+044_restrict_publish_to_managers.sql
+045_backfill_source_state.sql
 ```
 
 ## Storage
@@ -141,6 +144,18 @@ Todas devem retornar `relrowsecurity = true`, quando forem tabelas com RLS.
 
 ## Contratos estaticos
 
+Readiness local, antes do gate remoto:
+
+```bash
+python scripts/smoke/real_readiness.py
+python scripts/smoke/real_readiness.py --json
+```
+
+Este passo valida apenas pre-condicoes locais e nao chama Supabase. Ele nao
+substitui `check_supabase_contracts.py`, que continua validando contratos
+remotos de schema, bucket e RPCs. Para SQL, ele exige `psql` no `PATH` junto
+de uma DB URL, ou `SUPABASE_ACCESS_TOKEN` com project ref.
+
 Na raiz:
 
 ```bash
@@ -186,16 +201,18 @@ Get-Content .run\logs\worker-extraction.err.log -Tail 100
 
 1. `npx supabase db push`
 2. confirmar bucket `context-builder-private`
-3. `python scripts/smoke/check_supabase_contracts.py`
-4. `.\scripts\dev\check_local_stack.ps1`
-5. `.\scripts\dev\start_local_stack.ps1`
-6. `Invoke-RestMethod http://localhost:8000/health`
-7. `python scripts/smoke/supabase_smoke.py`
-8. `python scripts/smoke/supabase_smoke.py --full`
-9. `python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-id <source-id>` quando precisar explicar uma rodada
-10. `python scripts/ops/storage_gc.py --mode privacy-deleted` para dry-run de objetos pendentes de delete LGPD
+3. `python scripts/smoke/real_readiness.py`
+4. `python scripts/smoke/real_readiness.py --json` quando precisar de saida estruturada
+5. `python scripts/smoke/check_supabase_contracts.py`
+6. `.\scripts\dev\check_local_stack.ps1`
+7. `.\scripts\dev\start_local_stack.ps1`
+8. `Invoke-RestMethod http://localhost:8000/health`
+9. `python scripts/smoke/supabase_smoke.py`
+10. `python scripts/smoke/supabase_smoke.py --full`
+11. `python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-id <source-id>` quando precisar explicar uma rodada
+12. `python scripts/ops/storage_gc.py --mode privacy-deleted` para dry-run de objetos pendentes de delete LGPD
 
-O passo 8 so deve rodar depois do smoke minimo passar.
+O passo 10 so deve rodar depois do smoke minimo passar.
 
 ## Registro de execucao
 
@@ -204,8 +221,9 @@ Use este bloco no relatorio da execucao, sem secrets:
 ```text
 Data/hora:
 Project ref:
-Migrations: 000-042
+Migrations: 000-045
 Bucket privado: context-builder-private
+Readiness local:
 Contratos estaticos:
 Smoke minimo:
 Smoke full:
