@@ -312,6 +312,7 @@ def test_source_diagnostic_report_counts_pipeline_rows() -> None:
 
 def test_required_task010_scripts_exist() -> None:
     assert (ROOT / "scripts" / "smoke" / "real_readiness.py").exists()
+    assert (ROOT / "scripts" / "smoke" / "run_real_smoke.py").exists()
     assert (ROOT / "scripts" / "smoke" / "check_supabase_contracts.py").exists()
     assert (ROOT / "scripts" / "smoke" / "supabase_smoke.py").exists()
     assert (ROOT / "scripts" / "dev" / "check_local_stack.ps1").exists()

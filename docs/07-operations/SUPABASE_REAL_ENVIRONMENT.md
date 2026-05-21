@@ -8,7 +8,7 @@ Documento operacional da TASK-010 para provisionar e validar um ambiente Supabas
 - Aplique migrations `000` a `045`, em ordem.
 - Crie o bucket privado `context-builder-private`.
 - Execute a stack local com `scripts/dev/start_local_stack.ps1`.
-- Rode smoke minimo antes de `--full`.
+- Rode o smoke real pelo orquestrador; ele executa minimo antes de `--full`.
 - Use os scripts oficiais em `scripts/smoke/*.py`.
 - Nunca registre secrets em docs, terminal compartilhado, screenshots ou logs.
 
@@ -142,13 +142,38 @@ order by relname;
 
 Todas devem retornar `relrowsecurity = true`, quando forem tabelas com RLS.
 
-## Contratos estaticos
+## Validacao preferencial
+
+Na raiz do projeto, valide o fluxo local completo com:
+
+```bash
+uv run python scripts/smoke/run_real_smoke.py --target local --full --json-report .run/smoke-local-full.json
+```
+
+Esse comando orquestra readiness, contratos, preflight da stack local, health da
+API, smoke minimo e smoke completo. Ele nao inicia Redis, API ou workers por
+padrao.
+
+Se quiser que o orquestrador tente iniciar Redis e a stack local antes do
+health/smoke, use `--start-stack` de forma explicita:
+
+```bash
+uv run python scripts/smoke/run_real_smoke.py --target local --full --start-stack --json-report .run/smoke-local-full.json
+```
+
+Para validar uma API publicada contra o mesmo ambiente Supabase:
+
+```bash
+uv run python scripts/smoke/run_real_smoke.py --target cloud --full --api-base-url <url> --json-report .run/smoke-cloud-full.json
+```
+
+## Contratos estaticos e troubleshooting
 
 Readiness local, antes do gate remoto:
 
 ```bash
-python scripts/smoke/real_readiness.py
-python scripts/smoke/real_readiness.py --json
+uv run python scripts/smoke/real_readiness.py
+uv run python scripts/smoke/real_readiness.py --json
 ```
 
 Este passo valida apenas pre-condicoes locais e nao chama Supabase. Ele nao
@@ -160,14 +185,14 @@ Se `psql` existir fora do `PATH`, configure o caminho explicitamente:
 
 ```powershell
 $env:PSQL_BIN="C:\Program Files\PostgreSQL\16\bin\psql.exe"
-python scripts/smoke/real_readiness.py --psql-bin "$env:PSQL_BIN"
-python scripts/smoke/check_supabase_contracts.py
+uv run python scripts/smoke/real_readiness.py --psql-bin "$env:PSQL_BIN"
+uv run python scripts/smoke/check_supabase_contracts.py
 ```
 
 Na raiz:
 
 ```bash
-python scripts/smoke/check_supabase_contracts.py
+uv run python scripts/smoke/check_supabase_contracts.py
 ```
 
 Este passo deve rodar antes do smoke funcional para detectar schema incompleto, bucket ausente ou RPCs faltantes.
@@ -180,7 +205,8 @@ Preflight:
 .\scripts\dev\check_local_stack.ps1
 ```
 
-Suba a stack local:
+Suba a stack local, ou use `--start-stack` no orquestrador quando quiser que
+ele tente iniciar estes servicos:
 
 ```powershell
 .\scripts\dev\start_local_stack.ps1
@@ -209,18 +235,15 @@ Get-Content .run\logs\worker-extraction.err.log -Tail 100
 
 1. `npx supabase db push`
 2. confirmar bucket `context-builder-private`
-3. `python scripts/smoke/real_readiness.py`
-4. `python scripts/smoke/real_readiness.py --json` quando precisar de saida estruturada
-5. `python scripts/smoke/check_supabase_contracts.py`
-6. `.\scripts\dev\check_local_stack.ps1`
-7. `.\scripts\dev\start_local_stack.ps1`
-8. `Invoke-RestMethod http://localhost:8000/health`
-9. `python scripts/smoke/supabase_smoke.py`
-10. `python scripts/smoke/supabase_smoke.py --full`
-11. `python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-id <source-id>` quando precisar explicar uma rodada
-12. `python scripts/ops/storage_gc.py --mode privacy-deleted` para dry-run de objetos pendentes de delete LGPD
+3. garantir stack local de pe, ou optar por `--start-stack`
+4. `uv run python scripts/smoke/run_real_smoke.py --target local --full --json-report .run/smoke-local-full.json`
+5. `uv run python scripts/smoke/run_real_smoke.py --target cloud --full --api-base-url <url> --json-report .run/smoke-cloud-full.json` quando validar deploy
+6. `uv run python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-id <source-id>` quando precisar explicar uma rodada
+7. `uv run python scripts/ops/storage_gc.py --mode privacy-deleted` para dry-run de objetos pendentes de delete LGPD
 
-O passo 10 so deve rodar depois do smoke minimo passar.
+Para troubleshooting, rode os scripts individuais na mesma ordem usada pelo
+orquestrador: readiness, contratos, preflight local, health, smoke minimo e
+smoke completo.
 
 ## Registro de execucao
 

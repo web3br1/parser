@@ -2,13 +2,38 @@
 
 Procedimento da TASK-010 para validar o ambiente Supabase real.
 
-## Comandos oficiais
+## Comando preferencial
+
+Na raiz do projeto, rode o smoke real local pelo orquestrador:
+
+```bash
+uv run python scripts/smoke/run_real_smoke.py --target local --full --json-report .run/smoke-local-full.json
+```
+
+Esse comando executa readiness, contratos, preflight da stack local, health da
+API, smoke minimo e smoke completo, e grava um relatorio JSON unico.
+
+O orquestrador nao inicia Redis, API ou workers por padrao. Se quiser que ele
+tente subir a stack local antes do health/smoke, use `--start-stack` de forma
+explicita:
+
+```bash
+uv run python scripts/smoke/run_real_smoke.py --target local --full --start-stack --json-report .run/smoke-local-full.json
+```
+
+Para validar uma API publicada contra o mesmo projeto Supabase:
+
+```bash
+uv run python scripts/smoke/run_real_smoke.py --target cloud --full --api-base-url <url> --json-report .run/smoke-cloud-full.json
+```
+
+## Comandos de troubleshooting
 
 Readiness local:
 
 ```bash
-python scripts/smoke/real_readiness.py
-python scripts/smoke/real_readiness.py --json
+uv run python scripts/smoke/real_readiness.py
+uv run python scripts/smoke/real_readiness.py --json
 ```
 
 O readiness valida pre-condicoes locais e nao chama Supabase. Ele nao substitui
@@ -19,19 +44,19 @@ Para SQL, ele exige `psql` no `PATH` ou `PSQL_BIN` junto de uma DB URL, ou
 Contratos estaticos:
 
 ```bash
-python scripts/smoke/check_supabase_contracts.py
+uv run python scripts/smoke/check_supabase_contracts.py
 ```
 
 Smoke minimo:
 
 ```bash
-python scripts/smoke/supabase_smoke.py
+uv run python scripts/smoke/supabase_smoke.py
 ```
 
 Smoke completo:
 
 ```bash
-python scripts/smoke/supabase_smoke.py --full
+uv run python scripts/smoke/supabase_smoke.py --full
 ```
 
 O smoke completo depende do smoke minimo passar primeiro.
@@ -40,15 +65,15 @@ Relatorio JSON opcional:
 
 ```powershell
 $env:SMOKE_REPORT_JSON=".run\smoke-full.json"
-python scripts/smoke/supabase_smoke.py --full
+uv run python scripts/smoke/supabase_smoke.py --full
 ```
 
 Se `psql` estiver instalado fora do `PATH`, aponte diretamente:
 
 ```powershell
 $env:PSQL_BIN="C:\Program Files\PostgreSQL\16\bin\psql.exe"
-python scripts/smoke/real_readiness.py --psql-bin "$env:PSQL_BIN"
-python scripts/smoke/check_supabase_contracts.py
+uv run python scripts/smoke/real_readiness.py --psql-bin "$env:PSQL_BIN"
+uv run python scripts/smoke/check_supabase_contracts.py
 ```
 
 ## Antes de rodar
@@ -59,7 +84,8 @@ python scripts/smoke/check_supabase_contracts.py
 - Bucket `context-builder-private` existe e e privado.
 - SQL esta acionavel via `psql`/`PSQL_BIN` + DB URL, ou via `SUPABASE_ACCESS_TOKEN` + project ref.
 - Redis esta acessivel via `REDIS_URL`.
-- Stack local esta de pe:
+- Stack local esta de pe. O orquestrador apenas confere por padrao; use
+  `--start-stack` se quiser que ele tente iniciar a stack:
 
 ```powershell
 .\scripts\dev\check_local_stack.ps1
@@ -80,7 +106,7 @@ curl http://localhost:8000/health
 Execute da raiz do projeto:
 
 ```bash
-python scripts/smoke/supabase_smoke.py
+uv run python scripts/smoke/supabase_smoke.py
 ```
 
 Validacoes minimas esperadas:
@@ -111,7 +137,7 @@ SMOKE TEST PASSED
 Depois do minimo:
 
 ```bash
-python scripts/smoke/supabase_smoke.py --full
+uv run python scripts/smoke/supabase_smoke.py --full
 ```
 
 Validacoes adicionais esperadas:
@@ -196,7 +222,7 @@ Confirme que a key de modelo existe no `.env` local. Nao registre essa key no ou
 Use o script abaixo para ver source, jobs, chunks, facts, rules e unknowns via HTTP:
 
 ```bash
-python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-id <source-id>
+uv run python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-id <source-id>
 ```
 
 ### Limpar dados de smoke
@@ -204,15 +230,17 @@ python scripts/smoke/diagnose_source.py --workspace-id <workspace-id> --source-i
 Soft-delete dos workspaces com slug `smoke-*`:
 
 ```bash
-python scripts/smoke/cleanup_smoke.py
+uv run python scripts/smoke/cleanup_smoke.py
 ```
 
 ## Checklist de aceite
 
-- [ ] Readiness local passa.
-- [ ] Contratos estaticos passam.
-- [ ] Smoke minimo passa.
-- [ ] Smoke completo passa depois do minimo.
+- [ ] Orquestrador local passa com `--target local --full`.
+- [ ] Cloud passa com `--target cloud --full --api-base-url <url>` quando aplicavel.
+- [ ] Readiness local passa, ou foi isolado via troubleshooting.
+- [ ] Contratos estaticos passam, ou foram isolados via troubleshooting.
+- [ ] Smoke minimo passa, ou foi isolado via troubleshooting.
+- [ ] Smoke completo passa depois do minimo, ou foi isolado via troubleshooting.
 - [ ] Smoke real foi rodado com workers separados, sem modo eager.
 - [ ] Relatorio JSON foi gerado quando necessario.
 - [ ] Diagnostico por `source_id` funciona para a rodada.
