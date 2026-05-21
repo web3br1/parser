@@ -53,6 +53,17 @@ function Test-ProcessRunning {
     return $null -ne (Get-Process -Id ([int] $ExistingPid) -ErrorAction SilentlyContinue)
 }
 
+function Normalize-ProcessPathEnv {
+    $PathValue = [Environment]::GetEnvironmentVariable("Path", "Process")
+    if (-not $PathValue) {
+        $PathValue = [Environment]::GetEnvironmentVariable("PATH", "Process")
+    }
+    if ($PathValue) {
+        [Environment]::SetEnvironmentVariable("PATH", $null, "Process")
+        [Environment]::SetEnvironmentVariable("Path", $PathValue, "Process")
+    }
+}
+
 if (Test-RedisTcp $Port) {
     Write-Host "Redis already reachable on localhost:$Port"
     Write-Host "REDIS_URL=redis://localhost:$Port/0"
@@ -84,6 +95,7 @@ save ""
 appendonly no
 "@ | Set-Content -Path $RedisConfig -Encoding ASCII
 
+Normalize-ProcessPathEnv
 $Process = Start-Process `
     -FilePath $RedisServer `
     -ArgumentList @("redis.local.conf") `

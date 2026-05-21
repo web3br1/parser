@@ -334,6 +334,8 @@ def test_setup_redis_windows_uses_portable_redis_without_service_install() -> No
     assert "Expand-Archive" in script
     assert "redis-server.exe" in script
     assert ".run\\redis" in script
+    assert "function Normalize-ProcessPathEnv" in script
+    assert script.index("Normalize-ProcessPathEnv") < script.index("$Process = Start-Process")
     assert "REDIS_URL=redis://localhost:$Port/0" in script
     assert "New-Service" not in script
     assert "sc.exe" not in script
@@ -404,6 +406,18 @@ def test_dev_scripts_resolve_uv_from_env_or_common_windows_path() -> None:
         assert "function Resolve-UvPath" in script
         assert "UV_BIN" in script
         assert "miniforge3\\Scripts\\uv.exe" in script
+
+
+def test_check_local_stack_treats_cim_access_denied_as_non_blocking() -> None:
+    script = (ROOT / "scripts" / "dev" / "check_local_stack.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function Get-ManagedProcesses" in script
+    assert "Get-CimInstance Win32_Process" in script
+    assert "Write-Warning" in script
+    assert "return $null" in script
+    assert "$Count -eq $null" in script
 
 
 def test_check_local_stack_detects_duplicate_workers() -> None:

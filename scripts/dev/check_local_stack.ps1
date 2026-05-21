@@ -92,12 +92,26 @@ function Test-ManagedCommandLine {
     return $true
 }
 
+function Get-ManagedProcesses {
+    try {
+        return @(Get-CimInstance Win32_Process)
+    }
+    catch {
+        Write-Warning "Could not inspect process command lines with Get-CimInstance: $($_.Exception.Message)"
+        return $null
+    }
+}
+
 function Count-ManagedProcesses {
     param([string[]] $Needles)
 
     $CurrentPid = $PID
+    $Processes = Get-ManagedProcesses
+    if ($Processes -eq $null) {
+        return $null
+    }
     $Matches = @(
-        Get-CimInstance Win32_Process | Where-Object {
+        $Processes | Where-Object {
             $_.ProcessId -ne $CurrentPid `
                 -and $_.CommandLine `
                 -and (Test-ManagedCommandLine $_.CommandLine $Needles)
@@ -173,6 +187,10 @@ $WorkerSpecs = @(
 )
 foreach ($Spec in $WorkerSpecs) {
     $Count = Count-ManagedProcesses $Spec.Needles
+    if ($Count -eq $null) {
+        Write-Warning "Skipping duplicate $($Spec.Name) process check because process command lines are not accessible."
+        continue
+    }
     $Ok = $Count -le 1
     Write-Check "duplicate $($Spec.Name)" $Ok ("count={0}" -f $Count)
     if (-not $Ok) {
