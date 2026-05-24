@@ -4,9 +4,12 @@
 
 ```python
 CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL")  # modelo barato
-EXTRACTION_MODEL     = os.getenv("EXTRACTION_MODEL")       # modelo médio
-QUERY_MODEL          = os.getenv("QUERY_MODEL")            # modelo médio/alto
+EXTRACTION_MODEL     = os.getenv("EXTRACTION_MODEL")       # modelo medio
 ```
+
+`QUERY_MODEL` nao e obrigatorio para o Context Compiler. Consultas internas sao
+diagnosticas; o artefato de integracao com chatbot externo e
+`context_bundle.v1`.
 
 ---
 
@@ -76,7 +79,30 @@ for each chunk:
 
 ---
 
-## Fluxo 2 — Consulta
+## Fluxo 2 — Export Context Bundle
+
+Contrato completo: ver `CONTEXT_BUNDLE.md`.
+
+```text
+context_bundle_export(workspace_id)
+  -> check workspace membership
+  -> load published_sources
+  -> load published_facts / published_rules
+  -> load only referenced evidence spans
+  -> compute readiness from unknown queue and contradictions
+  -> sanitize records and evidence
+  -> compute deterministic context_version and bundle_hash
+  -> write audit_logs.action = 'context_bundle.export'
+  -> return context_bundle.v1
+```
+
+Este e o fluxo principal para entregar contexto mastigado ao chatbot externo.
+
+---
+
+## Fluxo 2b — Consulta diagnostica interna
+
+Consulta interna nao e o produto principal e nao substitui o chatbot externo.
 
 Contrato completo de producao: ver `QUERY.md`.
 

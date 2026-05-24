@@ -1,5 +1,10 @@
 # TASK-004 — Classification Worker
 
+> Historical task. Later cleanup moved the product boundary to
+> `context_bundle.v1`; `QUERY_MODEL` is not required by the Context Compiler.
+> Conversational query/runtime behavior belongs to the external chatbot
+> consumer.
+
 **Projeto:** Context Builder Empresarial  
 **Status:** `ready`  
 **Versão:** 2.0 (hardening aplicado — 15 gaps fechados)  

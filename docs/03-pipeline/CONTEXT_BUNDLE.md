@@ -1,7 +1,7 @@
 # CONTEXT_BUNDLE.md - Context Bundle Export Contract
 
-This document defines the first export contract for sending compiled Context
-Builder knowledge to an external chatbot runtime.
+This document defines the first export contract for sending compiled context
+from the Context Compiler/local extractor to an external chatbot runtime.
 
 The bundle is not a chat response and does not mutate the consumer runtime. It
 packages reviewed and published workspace knowledge as a stable JSON artifact.

@@ -1,9 +1,11 @@
 # Parser
 
-Sistema para transformar conhecimento bruto de empresas em fatos e regras estruturados, validados por humanos e consultaveis por IA.
+Sistema local para transformar conhecimento bruto de empresas em fatos e regras
+estruturados, validados por humanos e exportaveis como contexto confiavel.
 
-Este repositorio tambem atua como Context Compiler local: ele exporta
-`context_bundle.v1` para um projeto externo de chatbot consumir.
+Este repositorio e o Context Compiler: ele prepara conhecimento validado e
+exporta `context_bundle.v1` para um projeto externo de chatbot consumir. O
+chatbot final nao faz parte deste projeto.
 
 ## Como navegar
 
@@ -16,8 +18,10 @@ Leitura rapida:
 3. [Escopo do MVP](docs/01-product/MVP_SCOPE.md)
 4. [Pipeline tecnico](docs/03-pipeline/PIPELINE.md)
 5. [Context Bundle Export](docs/03-pipeline/CONTEXT_BUNDLE.md)
-6. [Modelo de dados](docs/04-data/DATA_MODEL.md)
-7. [Criterios de aceite](docs/07-qa/ACCEPTANCE_CRITERIA.md)
+6. [Runtime local](docs/operations/LOCAL_RUNTIME.md)
+7. [Docker local runtime](docs/operations/DOCKER_LOCAL_RUNTIME.md)
+8. [Modelo de dados](docs/04-data/DATA_MODEL.md)
+9. [Criterios de aceite](docs/07-qa/ACCEPTANCE_CRITERIA.md)
 
 ## Estrutura
 
@@ -32,12 +36,36 @@ Leitura rapida:
 | `docs/06-prompts` | Prompts de classificacao, extracao e avaliacao |
 | `docs/07-qa` | Criterios de aceite e casos de teste |
 | `docs/08-ops` | Observabilidade e regras de rejeicao |
+| `docs/operations` | Runtime local, Docker local e smoke runbooks |
+| `tasks` | Plano incremental de entrega e limpeza |
 | `examples` | Exemplos JSON esperados |
 | `prototype` | Wireframe HTML |
 | `supabase` | Migrations iniciais PostgreSQL/Supabase |
 | `backend` | Contratos Python iniciais: Pydantic schemas e normalização determinística |
 
+## Artefato principal
+
+O artefato que sobra para o chatbot externo e o `context_bundle.v1`: um JSON
+deterministico com fontes publicadas, fatos publicados, regras publicadas,
+evidencias referenciadas, readiness e hash de integridade. Ele nunca inclui
+conteudo em rascunho, secrets, prompts crus, paths locais, stack traces ou
+respostas brutas de provedor.
+
+## Runtime local
+
+Para desenvolvimento e piloto local, use Docker como runtime reproduzivel:
+
+```bash
+docker compose up --build
+```
+
+Os smoke scripts validam uma stack ja em execucao; eles nao iniciam nem param
+servicos locais. Veja `docs/operations/LOCAL_RUNTIME.md` e
+`docs/operations/DOCKER_LOCAL_RUNTIME.md`.
+
 ## Regra central
 
-O LLM pode interpretar. Nunca pode criar verdade operacional sem schema, validacao humana e audit log estruturado.
+O LLM interno pode classificar e extrair. Nunca pode criar verdade operacional
+sem schema, validacao humana e audit log estruturado. Interpretacao
+conversacional pertence ao chatbot externo que consome o bundle.
 

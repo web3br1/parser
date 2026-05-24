@@ -42,7 +42,6 @@ OLLAMA_TIMEOUT_SECONDS=300
 CLASSIFICATION_MODEL=gemma4:31b
 EXTRACTION_MODEL=hf.co/hesamation/Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled-GGUF:Q4_K_M
 EXTRACTION_MODEL_FALLBACK=kwangsuklee/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-GGUF:latest
-QUERY_MODEL=gemma4:31b
 
 SMOKE_USER_EMAIL=owner@example.test
 SMOKE_USER_PASSWORD=
@@ -165,13 +164,16 @@ O script deve validar, no minimo:
 
 ## 6. Rodar smoke minimo
 
-Rode primeiro o smoke minimo:
+Rode primeiro pelo orquestrador canonico:
 
 ```bash
-python scripts/smoke/supabase_smoke.py
+uv run --cache-dir .uv-cache python scripts/smoke/run_real_smoke.py --target local --json-report .run/smoke-local-minimal.json
 ```
 
-Para registrar um relatorio JSON sem secrets:
+`supabase_smoke.py` continua existindo como subfase/debug, mas nao e o comando
+primario de readiness.
+
+Se precisar diagnosticar a subfase diretamente:
 
 ```powershell
 $env:SMOKE_REPORT_JSON=".run\smoke-minimal.json"
@@ -197,10 +199,10 @@ O smoke minimo e o gate para qualquer validacao mais cara com modelo.
 
 ## 7. Rodar smoke completo
 
-Depois do minimo passar:
+Depois do minimo passar, rode o smoke completo pelo orquestrador canonico:
 
 ```bash
-python scripts/smoke/supabase_smoke.py --full
+uv run --cache-dir .uv-cache python scripts/smoke/run_real_smoke.py --target local --full --json-report .run/smoke-local-full.json
 ```
 
 Se precisar diagnosticar uma execucao especifica:
@@ -296,8 +298,9 @@ Use `--mode orphans` apenas para objetos antigos sem referencia em `sources`.
 - [ ] API, Redis e workers foram iniciados fora do orquestrador de smoke.
 - [ ] `GET /health` retorna 200.
 - [ ] `scripts/smoke/check_supabase_contracts.py` passa.
-- [ ] `scripts/smoke/supabase_smoke.py` passa no modo minimo.
-- [ ] `scripts/smoke/supabase_smoke.py --full` passa depois do minimo.
+- [ ] `scripts/smoke/run_real_smoke.py --target local` passa no modo minimo.
+- [ ] `scripts/smoke/run_real_smoke.py --target local --full` passa depois do minimo.
+- [ ] `scripts/smoke/supabase_smoke.py` foi usado apenas como subfase/debug quando necessario.
 - [ ] Relatorio JSON foi gerado quando a rodada precisa ser auditavel.
 - [ ] `scripts/smoke/diagnose_source.py` consegue explicar a rodada por `source_id`.
 - [ ] RLS bloqueia outsider.

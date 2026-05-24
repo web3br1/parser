@@ -1,149 +1,149 @@
-# SYSTEM_OVERVIEW.md — Visão Geral do Sistema
+# SYSTEM_OVERVIEW.md - Visao Geral do Sistema
 
 ## O que este sistema faz
 
-Transforma informações brutas de empresas em fontes de verdade estruturadas, validadas por humanos e consultáveis por IA.
+Transforma informacoes brutas de empresas em fontes de verdade estruturadas,
+validadas por humanos e exportaveis como `context_bundle.v1` para um chatbot ou
+runtime externo consumir.
 
-**Problema resolvido:** empresas pequenas têm conhecimento espalhado em PDFs, planilhas, WhatsApp e na cabeça do dono. Isso gera atendimento inconsistente, retrabalho e automações frágeis.
+**Problema resolvido:** empresas pequenas tem conhecimento espalhado em PDFs,
+planilhas, mensagens e na cabeca do dono. Isso gera atendimento inconsistente,
+retrabalho e automacoes frageis.
 
-**Solução:** camada de organização, validação e recuperação de verdades empresariais. O chatbot ou automação vem depois, como interface sobre esta camada.
+**Solucao:** uma camada local de organizacao, validacao, publicacao e exportacao
+de verdades empresariais. O chatbot vem depois, em outro projeto, como interface
+sobre o contexto compilado.
 
----
+## O que este sistema nao e
 
-## O que este sistema NÃO é
+- Nao e chatbot.
+- Nao e runtime final de conversa.
+- Nao e RAG generico sem schema.
+- Nao substitui validacao humana em dados criticos.
+- Nao e ERP, CRM ou sistema de automacao.
 
-- Não é chatbot. Chatbot é interface futura sobre esta camada.
-- Não é RAG genérico. Cada tipo de dado tem storage adequada.
-- Não é substituto de validação humana em dados críticos.
-- Não é ERP, CRM ou sistema de automação.
+## Fluxo canonico
 
----
-
-## Fluxo canônico
-
-```
+```text
 Input messy
-  ↓
-Input quality gate       ← rejeita antes de gastar tokens (ADR-001)
-  ↓
-Normalização determinística ← antes de qualquer schema (ADR-008)
-  ↓
-Chunking semântico       ← segmenta antes de classificar (ADR-002)
-  ↓
-Classificação por chunk  ← tipo por bloco, não por documento
-  ↓
-Extração com schema fixo ← nunca output livre (ADR-002)
-  ↓
-Roteamento               ← facts vs regras (ver PIPELINE.md)
-  ↓
-Unknown queue            ← tipos desconhecidos não entram no banco (ADR-003)
-  ↓
-Validação humana         ← nada crítico sem aprovação (ADR-004)
-  ↓
-published_facts / published_rules ← única superfície de consulta (ADR-011)
-  ↓
-LLM como interface       ← interpreta, não cria verdade
-  ↓
-Resposta com answer_state formal (ADR-010) + audit log versionado (ADR-006)
+  -> Input quality gate
+  -> Normalizacao deterministica
+  -> Chunking semantico
+  -> Classificacao por chunk
+  -> Extracao com schema fixo
+  -> Roteamento para fatos, regras ou unknown queue
+  -> Validacao humana
+  -> published_facts / published_rules
+  -> context_bundle.v1 com readiness e hash
+  -> Chatbot externo consome o bundle
 ```
 
----
+## Separacao de camadas
 
-## Separação de camadas
-
-| Camada | Conteúdo | Storage |
+| Camada | Conteudo | Storage |
 |--------|----------|---------|
-| Dados brutos | Arquivos originais imutáveis | File storage (R2/Supabase) |
-| Dados estruturados | Fatos extraídos e validados | PostgreSQL `extracted_facts` |
-| Regras | Políticas e condições validadas | PostgreSQL `business_rules` |
-| Publicados | Superfície de consulta — published + sem supersede + dentro da validade | Views `published_facts` / `published_rules` |
-| Conhecimento vetorial | Políticas textuais longas | pgvector (Fase 2) |
-| Dados dinâmicos | Preço, estoque, prazo | PostgreSQL — consulta direta, nunca RAG |
-| Decisão | LLM interpreta com base nas camadas acima | Sem persistência própria |
+| Dados brutos | Arquivos originais imutaveis | File storage privado |
+| Dados estruturados | Fatos extraidos e validados | PostgreSQL `extracted_facts` |
+| Regras | Politicas e condicoes validadas | PostgreSQL `business_rules` |
+| Publicados | Conhecimento aprovado, ativo e nao superseded | Views `published_facts` / `published_rules` |
+| Readiness | Lacunas, contradicoes e bloqueios de importacao | Consultas de qualidade |
+| Export | Bundle deterministico para runtime externo | `context_bundle.v1` |
 
----
+## Artefato de saida
 
-## Camadas de ingestão por versão
+O principal artefato deste projeto e o Context Bundle:
 
-| Versão | Fontes aceitas |
+- `schema_version = "context_bundle.v1"`;
+- fontes publicadas;
+- fatos publicados;
+- regras publicadas;
+- evidencias referenciadas;
+- readiness (`ready`, `warning`, `blocked`);
+- `integrity.bundle_hash` deterministico;
+- audit log de exportacao.
+
+O bundle nunca inclui drafts, unknown queue bruta, secrets, bearer tokens, URLs
+assinadas, paths locais, prompts crus, stack traces, respostas brutas de
+provedor ou conteudo nao publicado.
+
+## Camadas de ingestao por versao
+
+| Versao | Fontes aceitas |
 |--------|----------------|
 | MVP | Upload manual: PDF textual, DOCX, XLSX, CSV, TXT, texto colado |
-| V1 | + URL pública controlada (depth=1, sem JS, robots.txt respeitado) + importação assistida (CSV/JSON exportados) |
-| V2 | + Conectores oficiais: Google Sheets, Google Drive, Google Business Profile, Instagram/Facebook Graph API, YouTube, WhatsApp Business |
-| V3 | + Monitoramento contínuo de mudança em fontes externas |
+| V1 | URL publica controlada e importacao assistida CSV/JSON |
+| V2 | Conectores oficiais: Google Sheets, Drive, Business Profile, Instagram, YouTube, WhatsApp Business |
+| V3 | Monitoramento continuo de mudanca em fontes externas |
 
-Toda fonte externa passa por quality gate, classificação de confiabilidade e validação humana antes de virar verdade operacional. Nunca scraping irrestrito.
-
----
+Toda fonte externa passa por quality gate, classificacao de confiabilidade e
+validacao humana antes de virar verdade operacional. Nunca ha scraping
+irrestrito.
 
 ## Confiabilidade de fonte
 
-Cada fonte recebe `source_reliability` que impacta resolução de conflitos e disclaimer nas respostas:
+Cada fonte recebe `source_reliability`, que impacta resolucao de conflitos e
+readiness do bundle.
 
 | Tipo | Exemplos | Confiabilidade |
 |------|----------|----------------|
-| `official_document` | Contrato assinado, política aprovada | Alta |
-| `official_website` | Site institucional | Média-alta |
-| `official_api` | Google Business, WhatsApp Business | Média-alta |
-| `internal_spreadsheet` | Planilha de preços interna | Média |
-| `marketing_content` | Post patrocinado | Média-baixa |
-| `social_post` | Instagram orgânico | Baixa |
+| `official_document` | Contrato assinado, politica aprovada | Alta |
+| `official_website` | Site institucional | Media-alta |
+| `official_api` | Google Business, WhatsApp Business | Media-alta |
+| `internal_spreadsheet` | Planilha de precos interna | Media |
+| `marketing_content` | Post patrocinado | Media-baixa |
+| `social_post` | Instagram organico | Baixa |
 | `review` | Google Reviews | Muito baixa |
 | `conversation` | DM, WhatsApp | Baixa |
 
-Conflito entre tipos com diferença de 2+ níveis → fonte superior vence automaticamente.
-Mesmo nível → revisão humana obrigatória.
+Conflito entre tipos com diferenca de dois ou mais niveis pode ser resolvido
+pela fonte superior quando a regra permitir. Mesmo nivel exige revisao humana.
 
----
+## Versionamento
 
-## Versionamento por camada
-
-Toda resposta deve ser reproduzível. Cada fato armazena:
+Toda saida deve ser reproduzivel. Cada fato ou regra armazena:
 
 | Campo | O que versiona |
 |-------|----------------|
-| `schema_version` | Versão do Pydantic schema usado na extração |
-| `prompt_version` | Versão/hash do prompt usado |
+| `schema_version` | Versao do schema usado na extracao |
+| `prompt_version` | Versao/hash do prompt usado |
 | `model_provider` / `model_name` | Provedor e modelo de IA |
-| `supersedes` / `superseded_by` | Cadeia de substituição de facts/rules |
+| `supersedes` / `superseded_by` | Cadeia de substituicao de facts/rules |
 | `source_version` | Inteiro incrementado a cada re-upload |
 
-Audit logs registram todas as versões usadas em cada resposta.
+O export registra `context_version`, `bundle_hash` e `audit_logs.action =
+'context_bundle.export'`.
 
----
+## Readiness do bundle
 
-## Estados formais de resposta
+O sistema nao improvisa quando a fonte nao cobre o assunto. Em vez de responder
+ao usuario final, ele informa ao consumidor externo se o contexto esta pronto:
 
-O sistema nunca improvisa quando a fonte não cobre a pergunta:
+| Estado | Uso |
+|--------|-----|
+| `ready` | O consumidor pode importar como contexto ativo |
+| `warning` | Pode importar, mas deve mostrar avisos operacionais |
+| `blocked` | Nao deve ativar como contexto de producao |
 
-| Estado | Resposta ao usuário |
-|--------|---------------------|
-| `valid_answer` | Resposta normal com fonte publicada |
-| `partial_answer` | Resposta parcial com indicação do que falta |
-| `not_found` | "Ainda não temos essa informação validada." |
-| `conflicting_sources` | "Há um conflito não resolvido. Consulte o responsável." |
-| `needs_human_validation` | "Essa informação ainda não foi validada por um humano." |
-
----
+Bloqueios comuns: ausencia de fontes publicadas, ausencia de registros
+publicados, unknowns abertos, contradicoes abertas ou registros publicados sem
+proveniancia.
 
 ## Nicho inicial
 
-**Genérico:** sistema agnóstico de nicho por padrão.
-**Prioritário no MVP:** estúdios de estética (SP e RJ).
+**Generico:** sistema agnostico de nicho por padrao.
+**Prioritario no MVP:** estudios de estetica (SP e RJ).
 
-Extensão para outros nichos: criar arquivos em `/docs/04-data/schemas/{nicho}/`.
-Nunca modificar código core para adaptação de nicho — extensão via configuração.
+Extensao para outros nichos deve acontecer por schema/configuracao, nao por
+alteracao do core.
 
----
+## Principios nao-negociaveis
 
-## Princípios não-negociáveis
-
-1. Sem schema fixo → não extrai
-2. Sem validação humana → não responde ao cliente
-3. Sem audit log versionado → não executa
-4. Dado dinâmico → nunca via RAG
-5. Unknown → fila de revisão, nunca banco estruturado
-6. Fonte externa → quality gate + confiabilidade + validação antes de publicar
-7. LLM classifica, extrai e interpreta — nunca cria verdade sozinho
-8. Todo input é tratado como hostil (ver SECURITY.md)
-
+1. Sem schema fixo -> nao extrai.
+2. Sem validacao humana -> nao publica.
+3. Sem audit log versionado -> nao executa.
+4. Dado dinamico -> nunca via RAG.
+5. Unknown -> fila de revisao, nunca banco estruturado.
+6. Fonte externa -> quality gate + confiabilidade + validacao antes de publicar.
+7. LLM classifica e extrai; nunca cria verdade sozinho.
+8. Todo input e tratado como hostil.
+9. Chatbot externo consome contexto; conversa final nao mora neste repo.

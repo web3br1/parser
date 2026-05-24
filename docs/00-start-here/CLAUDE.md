@@ -1,4 +1,4 @@
-# CLAUDE.md — Context Builder: Índice Operacional
+# CLAUDE.md — Context Compiler: Índice Operacional
 
 > Ponto de entrada para Claude Code.
 > Não contém implementação. Contém navegação e regra de ouro.
@@ -12,11 +12,12 @@
 |-------|---------|-------------|
 | 1 | `/docs/00-start-here/MVP_DECISIONS.md` | Decisões finais do MVP: escopo, fact types, answer states, pipeline, QA e produção |
 | 2 | `/docs/00-start-here/SYSTEM_OVERVIEW.md` | O que o sistema faz, camadas, confiabilidade de fonte, versionamento, answer states |
-| 3 | `/docs/03-pipeline/PIPELINE.md` | Fluxo técnico completo: ingestão, consulta, contradição, rollback, idempotência |
-| 4 | `/docs/04-data/DATA_MODEL.md` | Schema SQL completo com RLS, views de publicação, permissões por ação |
-| 5 | `/docs/01-product/MVP_SCOPE.md` | O que entra, o que não entra, critérios de aceite, roadmap |
-| 6 | `/docs/04-data/SCHEMA_REGISTRY.md` | Schemas Pydantic fixos por fact_type |
-| 7 | `/docs/08-ops/REJECTION_RULES.md` | O que nunca pode ser implementado |
+| 3 | `/docs/03-pipeline/PIPELINE.md` | Fluxo técnico completo: ingestão, publicação, contradição, rollback, idempotência |
+| 4 | `/docs/03-pipeline/CONTEXT_BUNDLE.md` | Contrato `context_bundle.v1` consumido pelo chatbot externo |
+| 5 | `/docs/04-data/DATA_MODEL.md` | Schema SQL completo com RLS, views de publicação, permissões por ação |
+| 6 | `/docs/01-product/MVP_SCOPE.md` | O que entra, o que não entra, critérios de aceite, roadmap |
+| 7 | `/docs/04-data/SCHEMA_REGISTRY.md` | Schemas Pydantic fixos por fact_type |
+| 8 | `/docs/08-ops/REJECTION_RULES.md` | O que nunca pode ser implementado |
 
 ## Referência durante implementação
 
@@ -25,6 +26,9 @@
 | `/docs/06-prompts/CLASSIFICATION_PROMPT.md` | Prompt de classificação por chunk |
 | `/docs/06-prompts/EXTRACTION_PROMPTS.md` | Prompts de extração por fact_type + rule_evaluation |
 | `/docs/03-pipeline/EXTRACTION_CONTRACTS.md` | Contratos de I/O por operação |
+| `/docs/operations/LOCAL_RUNTIME.md` | Como rodar API/workers externamente ao smoke |
+| `/docs/operations/DOCKER_LOCAL_RUNTIME.md` | Runtime local reproduzível via Docker |
+| `/docs/operations/smoke-runbook.md` | Smoke/readiness real sem lifecycle local |
 | `/docs/05-security/SECURITY_RLS.md` | RLS, isolamento, configuração de sessão |
 | `/docs/05-security/SECURITY.md` | Prompt injection, upload abuse, segredos, idempotência, retenção |
 | `/docs/02-architecture/MCP_GATEWAY.md` | Geração de MCP, gateway de conectores, OAuth, auditoria (V2) |
@@ -42,7 +46,6 @@
 ```
 CLASSIFICATION_MODEL=   # modelo barato (ex: claude-haiku-4-5, gpt-4o-mini)
 EXTRACTION_MODEL=       # modelo médio (ex: claude-sonnet-4-6, gpt-4o)
-QUERY_MODEL=            # modelo médio/alto para consultas
 DATABASE_URL=
 STORAGE_BUCKET_URL=
 ```
@@ -53,6 +56,8 @@ Nunca hardcodar nome de modelo no código.
 
 ## Regra de ouro
 
-> O LLM pode interpretar. Nunca pode criar verdade sem validação, schema e audit log estruturado.
+> O LLM interno pode classificar e extrair. Nunca pode criar verdade sem
+> validação, schema e audit log estruturado. A conversa final pertence ao
+> chatbot externo que consome `context_bundle.v1`.
 
 

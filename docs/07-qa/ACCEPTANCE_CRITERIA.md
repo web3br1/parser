@@ -47,15 +47,15 @@ O MVP só está completo quando todos os itens abaixo passam end-to-end.
 - [ ] Contagem de itens pendentes na unknown_facts_queue visível
 - [ ] Dado não-approved nunca aparece em published_facts
 
-## Camada de publicação e consulta
+## Camada de publicação e export
 
 - [ ] published_facts view: apenas `status='published'` + dentro da validade + `superseded_by is null`
-- [ ] Camada de consulta usa apenas published_facts e published_rules — nunca extracted_facts direto
-- [ ] answer_state retornado em toda resposta: valid_answer, not_found, conflicting_sources, needs_human_validation ou partial_answer
-- [ ] Resposta com answer_state != 'valid_answer' não usa LLM para improvisar
-- [ ] query_audits e audit_logs gerados para toda consulta relevante
-- [ ] used_unvalidated_data: false garantido para toda resposta ao cliente
-- [ ] Campos sensitive=true removidos do contexto antes de responder para staff
+- [ ] Context Bundle usa apenas published_sources, published_facts e published_rules; nunca extracted_facts direto
+- [ ] Readiness retorna ready, warning ou blocked com blocking_reasons e warnings
+- [ ] Export blocked nao deve ser ativado pelo consumidor externo como contexto de producao
+- [ ] Audit log gerado para todo export com `audit_logs.action = 'context_bundle.export'`
+- [ ] Bundle garante `used_unvalidated_data: false` por construcao: apenas dados publicados entram
+- [ ] Campos sensitive=true e segredos operacionais nao aparecem no bundle
 
 ## Contradições e conflitos
 
@@ -103,7 +103,8 @@ O MVP só está completo quando todos os itens abaixo passam end-to-end.
 - [ ] CI verde em pull request: `uv run ruff check .`, `uv run pytest -q`, `uvx pip-audit`, `pnpm audit --prod`, typecheck e build do frontend
 - [ ] Smoke tests incluidos no gate padrao de pytest via `tests/smoke`
 - [ ] Secret scan bloqueia valores vazados (`sk-*`, Bearer JWT/key e assignments longos de secrets), sem falhar por nomes de variaveis documentados
-- [ ] Smoke full Supabase passa: `python scripts/smoke/supabase_smoke.py --full`
+- [ ] Smoke full real passa pelo orquestrador canonico: `uv run --cache-dir .uv-cache python scripts\smoke\run_real_smoke.py --target local --full --json-report .run\smoke-local-full.json`
+- [ ] `scripts/smoke/supabase_smoke.py --full` continua disponivel apenas como subfase/debug do smoke real
 - [ ] Metricas mecanicas do piloto passam via `scripts/pilot/pilot_metrics.py`: approval_rate >= 0.70, edit_rate <= 0.30, unknown_rate <= 0.25, critical_error = 0
 - [ ] Gate RLS outsider passa no smoke full: RLS violations = 0
 - [ ] Gate semantico passa com `--predictions` ou `--pilot-report` contendo `semantic_predictions`: precision >= 0.85, recall >= 0.75, critical_false_positives = 0, negative_test_false_positives = 0. Sem predictions, registrar `not_evaluated`.
@@ -116,4 +117,5 @@ O MVP só está completo quando todos os itens abaixo passam end-to-end.
 - [ ] Context Bundle v1 nunca inclui secrets, bearer tokens, paths locais, prompts crus, stack traces ou conteudo nao publicado
 - [ ] Export bem-sucedido de Context Bundle gera `audit_logs.action = 'context_bundle.export'`
 - [ ] Gate do Context Bundle passa: `uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\api\test_knowledge.py tests\integrity -q`
+- [ ] Gate do Context Bundle faz parte do release/piloto padrao, nao apenas de mudancas no export
 

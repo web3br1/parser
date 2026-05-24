@@ -76,9 +76,11 @@ Todo worker de parsing roda como processo isolado pelo runtime operacional com:
   - usuario sem privilegios administrativos
 ```
 
-O projeto nao usa Docker como contrato operacional. Em desenvolvimento, os workers rodam via
-`scripts/dev/start_local_stack.ps1`; em deploy, o runtime escolhido deve aplicar os limites acima
-por systemd, supervisor, VM, PaaS ou orquestrador externo.
+Docker e o runtime local reproduzivel para desenvolvimento/piloto, mas nao e
+contrato de deploy. Em desenvolvimento, use `docs/operations/LOCAL_RUNTIME.md`
+ou `docs/operations/DOCKER_LOCAL_RUNTIME.md`; em deploy, o runtime escolhido
+deve aplicar os limites acima por systemd, supervisor, VM, PaaS ou orquestrador
+externo.
 
 ---
 

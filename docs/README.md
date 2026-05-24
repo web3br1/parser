@@ -12,6 +12,7 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 6. `06-prompts`: prompts versionados e contratos esperados.
 7. `07-qa`: aceite, testes e outputs esperados.
 8. `08-ops`: observabilidade, regressao e rejeicoes.
+9. `operations`: runtime local, Docker e smoke/readiness real.
 
 ## Mapa rapido
 
@@ -21,8 +22,11 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 | O que o sistema e | `00-start-here/SYSTEM_OVERVIEW.md` |
 | O que entra no MVP | `01-product/MVP_SCOPE.md` |
 | O fluxo tecnico completo | `03-pipeline/PIPELINE.md` |
-| O contrato completo do endpoint de consulta auditavel | `03-pipeline/QUERY.md` |
 | Como exportar contexto para outro chatbot | `03-pipeline/CONTEXT_BUNDLE.md` |
+| Como consultar conhecimento internamente para diagnostico | `03-pipeline/QUERY.md` |
+| Como rodar runtime local | `operations/LOCAL_RUNTIME.md` |
+| Como rodar Docker local | `operations/DOCKER_LOCAL_RUNTIME.md` |
+| Como rodar smoke/readiness real | `operations/smoke-runbook.md` |
 | Quais dados existem no banco | `04-data/DATA_MODEL.md` |
 | Quais fact types existem | `04-data/SCHEMA_REGISTRY.md` |
 | Como validar seguranca multi-tenant | `05-security/SECURITY_RLS.md` |
@@ -34,6 +38,7 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 | Qual matriz de testes roda sem infraestrutura real | `07-qa/TEST_MATRIX_PRE_SUPABASE.md` |
 | Como simular E2E com mocks | `07-qa/MOCK_E2E_RUNBOOK.md` |
 | Quais gates rodam antes de tasks grandes | `07-qa/REGRESSION_GATES.md` |
+| Qual plano cobre Context Bundle e cleanup | `../tasks/TASK-011-context-bundle-integration.md` ate `../tasks/TASK-016-docs-canonicalization.md` |
 | O que nunca implementar | `08-ops/REJECTION_RULES.md` |
 | Quais migrations são executáveis | `../supabase/README.md` |
 | Onde fica o dataset adversarial | `../examples/adversarial/README.md` |
@@ -44,7 +49,8 @@ Antes de teste real com usuarios, leia `00-start-here/PENDING_DECISIONS.md`.
 
 ## Piloto local
 
-Para rodar o piloto local, leia `07-operations/PILOT_LOCAL_RUNBOOK.md`.
+Para rodar o piloto local, leia `operations/LOCAL_RUNTIME.md` e
+`operations/DOCKER_LOCAL_RUNTIME.md`.
 
-Para comparar eficiencia dos modelos Ollama, leia `07-operations/MODEL_BENCHMARKS.md`.
+Para smoke/readiness real, leia `operations/smoke-runbook.md`.
 

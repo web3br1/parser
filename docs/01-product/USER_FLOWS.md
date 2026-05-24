@@ -45,7 +45,27 @@ Vê chunk com texto + sugestão de label + confiança
   └── [Ignorar] → status → ignored
 ```
 
-## Fluxo 4 — Consulta auditável
+## Fluxo 4 — Export Context Bundle
+
+```
+Usuario acessa /user/context-bundle ou acao equivalente de export
+  ->
+Sistema calcula readiness:
+  - fontes publicadas
+  - fatos/regras publicadas
+  - unknowns abertos
+  - contradicoes abertas
+  - evidencia/proveniancia
+  ->
+Usuario ve status ready/warning/blocked
+  ->
+Se aprovado, consumidor externo importa context_bundle.v1
+```
+
+## Fluxo 4b — Consulta diagnostica interna
+
+Consulta auditavel interna pode existir para QA e diagnostico. Ela nao e o
+chatbot final do produto.
 
 ```
 Usuário acessa /user/query

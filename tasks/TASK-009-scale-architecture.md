@@ -1,5 +1,10 @@
 # TASK-009 - Scale Architecture and Configurability
 
+> Historical task. Earlier query-model settings below are retained for
+> traceability. Current canonical scope is the local Context Compiler exporting
+> `context_bundle.v1`; chatbot/query model routing belongs to the external
+> consumer unless used only for internal diagnostics.
+
 **Projeto:** Context Builder Empresarial  
 **Status:** `ready`  
 **Versao:** 1.0  

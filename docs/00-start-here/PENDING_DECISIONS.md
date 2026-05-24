@@ -2,11 +2,13 @@
 
 Todas as decisoes pendentes foram fechadas em 2026-05-12.
 
-O registro canonico agora esta em:
+O registro historico das decisoes fechadas esta em:
 
 ```text
 docs/07-operations/DECISOES_PENDENTES.md
 ```
+
+Os runbooks canonicos de runtime e smoke estao em `docs/operations/`.
 
 Resumo:
 

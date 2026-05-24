@@ -1,46 +1,55 @@
-# MVP_DECISIONS.md — Decisões Fechadas de Implementação
+# MVP_DECISIONS.md - Decisoes Fechadas de Implementacao
 
-Este documento é a fonte de verdade mais recente para implementação do MVP.
+Este documento e a fonte de verdade mais recente para implementacao do MVP.
 
-## Princípio de Fechamento
+## Principio de fechamento
 
 ```text
-1. Nada implícito → tudo vira contrato
-2. Nada probabilístico → sempre fallback determinístico
-3. Nada global → tudo versionado e auditável
+1. Nada implicito -> tudo vira contrato
+2. Nada probabilistico -> sempre fallback deterministico
+3. Nada global -> tudo versionado e auditavel
 ```
 
-## Produto / MVP
+## Direcao de produto
 
-### Escopo
+O MVP nao e um chatbot. O MVP e um Context Compiler local que transforma caos em
+conhecimento validado e exporta esse contexto para outro runtime.
 
 ```text
 IN:
-✔ Upload manual
-✔ Quality gate
-✔ Extração estruturada
-✔ Revisão humana por chunk
-✔ Publicação controlada
-✔ Consulta auditável interna
+- Upload manual
+- Quality gate
+- Extracao estruturada
+- Revisao humana por chunk
+- Publicacao controlada
+- Export auditavel de context_bundle.v1
+- Readiness, gaps e bloqueios de importacao
 
 OUT:
-✘ Cliente final externo
-✘ Automação de resposta
-✘ Escrita em APIs externas
-✘ Social media connectors
-✘ Crawling contínuo
+- Cliente final externo
+- Runtime final de conversa
+- Automacao de resposta
+- Escrita em APIs externas
+- Social media connectors
+- Crawling continuo
+- Hosted vector database
 ```
 
-### Onboarding
+Consultas internas podem existir para diagnostico e QA, mas nao sao o produto
+principal. O contrato de integracao com o outro projeto e `context_bundle.v1`.
+
+## Onboarding
 
 ```text
-STEP 1 → Criar workspace
-STEP 2 → Criar usuário owner
-STEP 3 → Selecionar "tipo de negócio" (template opcional)
-STEP 4 → Upload obrigatório inicial
-STEP 5 → Quality gate bloqueante
-STEP 6 → Ingestão automática
-STEP 7 → Redirecionar para tela de revisão
+STEP 1 -> Criar workspace
+STEP 2 -> Criar usuario owner
+STEP 3 -> Selecionar tipo de negocio/template opcional
+STEP 4 -> Upload inicial obrigatorio
+STEP 5 -> Quality gate bloqueante
+STEP 6 -> Ingestao automatica
+STEP 7 -> Redirecionar para revisao
+STEP 8 -> Publicar conhecimento validado
+STEP 9 -> Exportar context_bundle.v1
 ```
 
 ```ts
@@ -48,6 +57,7 @@ type WorkspaceState = {
   has_uploaded: boolean
   has_validated_data: boolean
   has_published_data: boolean
+  has_exportable_context: boolean
 }
 ```
 
@@ -116,47 +126,59 @@ type WorkspaceState = {
 }
 ```
 
-## Answer States
+## Readiness do Context Bundle
 
 ```ts
-type AnswerState =
-  | "valid_answer"
-  | "not_found"
-  | "conflicting_sources"
-  | "needs_human_validation"
-  | "partial_answer"
+type ContextBundleReadiness = {
+  status: "ready" | "warning" | "blocked"
+  score: number
+  blocking_reasons: string[]
+  warnings: string[]
+}
 ```
 
-| Estado | Mensagem padrão |
-|--------|-----------------|
-| `not_found` | "Não encontrei essa informação nas fontes validadas." |
-| `conflicting_sources` | "Existem informações conflitantes sobre isso. Recomendo revisão." |
-| `needs_human_validation` | "Essa informação ainda não foi validada por um humano." |
-| `partial_answer` | "Encontrei informações parciais. Pode haver lacunas." |
+Blocking reasons iniciais:
+
+- `no_published_sources`
+- `no_published_records`
+- `open_unknown_items`
+- `blocking_contradictions`
+- `published_record_missing_source`
+- `published_record_missing_provenance`
+
+Warnings iniciais:
+
+- `published_record_missing_evidence`
+- `low_confidence_record`
+
+Estados de resposta conversacional pertencem ao projeto consumidor. Este repo
+entrega readiness, evidencias e contexto compilado.
 
 ## Pipeline
 
 ```text
 UPLOAD
-→ FILE_VALIDATION
-→ TEXT_EXTRACTION
-→ QUALITY_GATE
-→ CHUNKING
-→ CLASSIFICATION
-→ EXTRACTION
-→ NORMALIZATION
-→ STORE
-→ REVIEW_QUEUE
+-> FILE_VALIDATION
+-> TEXT_EXTRACTION
+-> QUALITY_GATE
+-> CHUNKING
+-> CLASSIFICATION
+-> EXTRACTION
+-> NORMALIZATION
+-> STORE
+-> REVIEW_QUEUE
+-> PUBLISH
+-> CONTEXT_BUNDLE_EXPORT
 ```
 
-### Chunking
+## Chunking
 
 PDF/DOCX:
 
 ```text
 1. Heading detection
 2. Paragraph block
-3. Máx 800 tokens
+3. Max 800 tokens
 4. Overlap 100 tokens
 ```
 
@@ -164,10 +186,10 @@ CSV/XLSX:
 
 ```text
 Para cada sheet:
-→ detectar header
-→ mapear colunas
-→ agrupar linhas em blocos de 10–20
-→ preservar header em cada chunk
+-> detectar header
+-> mapear colunas
+-> agrupar linhas em blocos de 10-20
+-> preservar header em cada chunk
 ```
 
 Um chunk pode gerar:
@@ -178,7 +200,7 @@ Um chunk pode gerar:
 - 0..N unknowns
 ```
 
-### Retries
+## Retries
 
 ```text
 classification:
@@ -191,27 +213,27 @@ timeout:
 - retry com backoff exponencial
 
 erro final:
-→ status = failed
-→ enviar para revisão manual
+-> status = failed
+-> enviar para revisao manual
 ```
 
-### Normalização
+## Normalizacao
 
-Normalização nunca usa LLM.
+Normalizacao nunca usa LLM.
 
 ```ts
-normalize_currency("R$ 120") → 120 BRL
-normalize_currency("120 reais") → 120 BRL
-normalize_time("fim do dia") → 18:00
-normalize_time("manhã") → 09:00
-normalize_date("hoje") → resolve via timezone
+normalize_currency("R$ 120") -> 120 BRL
+normalize_currency("120 reais") -> 120 BRL
+normalize_time("fim do dia") -> 18:00
+normalize_time("manha") -> 09:00
+normalize_date("hoje") -> resolve via timezone
 ```
 
-## Segurança
+## Seguranca
 
 ```text
 Auth: Supabase Auth
-user_id → workspace_members
+user_id -> workspace_members
 Bucket: private
 Storage path: /workspace/{id}/source/{id}/file
 ```
@@ -228,9 +250,13 @@ Nunca usar:
 workspace_id = auth.uid()
 ```
 
+O Context Bundle nunca inclui secrets, bearer tokens, signed URLs, paths locais,
+prompts crus, provider responses, stack traces, unpublished facts/rules ou raw
+unknown queue content.
+
 ## QA
 
-Dataset mínimo:
+Dataset minimo:
 
 ```text
 10 docs bons
@@ -240,49 +266,52 @@ Dataset mínimo:
 5 planilhas quebradas
 ```
 
-Métricas:
+Metricas:
 
 ```text
 approval_rate > 70%
 edit_rate < 30%
 unknown < 25%
 critical_error = 0
+context_bundle_secret_leaks = 0
 ```
 
-## Produção
+## Producao
 
 ```text
-✔ RLS testado
-✔ Storage privado
-✔ Retry idempotente
-✔ Logs sem PII
-✔ Versionamento ativo
-✔ Rollback funcional
-✔ QA completo
-✔ Auditoria completa
-✔ Query usa apenas dados publicados
+- RLS testado
+- Storage privado
+- Retry idempotente
+- Logs sem PII/secrets
+- Versionamento ativo
+- Rollback funcional
+- QA completo
+- Auditoria completa
+- Context bundle usa apenas dados publicados
+- Secret scan e redaction gates passam
 ```
 
-## Decisão Final
+## Decisao final
 
-O MVP não é:
+O MVP nao e:
 
 ```text
 IA que responde perguntas
 ```
 
-O MVP é:
+O MVP e:
 
 ```text
-Sistema que transforma caos → dado validado → decisão auditável
+Sistema local que transforma caos -> dado validado -> contexto exportavel
 ```
 
-## Próximo Bloco
+## Proximo bloco
 
 ```text
-1. funções SQL de aprovação/publicação
-2. funções SQL de supersede/rollback
-3. storage policies do Supabase
-4. Pydantic schemas equivalentes aos JSON Schemas
-5. endpoints FastAPI que chamam essas tabelas
+1. consolidar funcoes SQL de aprovacao/publicacao
+2. consolidar supersede/rollback
+3. validar storage policies do Supabase
+4. manter schemas Pydantic alinhados aos JSON Schemas
+5. expor endpoints FastAPI para ingestao, revisao, publicacao e bundle
+6. preparar importacao pelo chatbot externo
 ```

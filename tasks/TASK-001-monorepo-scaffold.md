@@ -1,5 +1,10 @@
 # TASK-001 — Monorepo Scaffold
 
+> Historical task. Some runtime notes below predate TASK-013/TASK-015.
+> Canonical local runtime docs are now `docs/operations/LOCAL_RUNTIME.md` and
+> `docs/operations/DOCKER_LOCAL_RUNTIME.md`; smoke scripts validate an
+> already-running stack.
+
 **Projeto:** Context Builder Empresarial  
 **Status:** `ready`  
 **Agente:** Claude Code / Codex  
