@@ -2,6 +2,9 @@
 
 Sistema para transformar conhecimento bruto de empresas em fatos e regras estruturados, validados por humanos e consultaveis por IA.
 
+Este repositorio tambem atua como Context Compiler local: ele exporta
+`context_bundle.v1` para um projeto externo de chatbot consumir.
+
 ## Como navegar
 
 Comece por [docs/00-start-here/CLAUDE.md](docs/00-start-here/CLAUDE.md). Ele e o indice operacional para qualquer implementacao.
@@ -12,8 +15,9 @@ Leitura rapida:
 2. [Visao geral do sistema](docs/00-start-here/SYSTEM_OVERVIEW.md)
 3. [Escopo do MVP](docs/01-product/MVP_SCOPE.md)
 4. [Pipeline tecnico](docs/03-pipeline/PIPELINE.md)
-5. [Modelo de dados](docs/04-data/DATA_MODEL.md)
-6. [Criterios de aceite](docs/07-qa/ACCEPTANCE_CRITERIA.md)
+5. [Context Bundle Export](docs/03-pipeline/CONTEXT_BUNDLE.md)
+6. [Modelo de dados](docs/04-data/DATA_MODEL.md)
+7. [Criterios de aceite](docs/07-qa/ACCEPTANCE_CRITERIA.md)
 
 ## Estrutura
 

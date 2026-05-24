@@ -111,3 +111,27 @@ Checklist:
 ```
 
 Se qualquer item falhar, nao iniciar TASK-010.
+
+---
+
+## Gate context bundle
+
+Usar antes de alterar exportacao, knowledge, published views, query readiness ou
+contratos consumidos pelo chatbot externo:
+
+```bash
+uv run --cache-dir .uv-cache pytest tests/api/test_context_bundle.py tests/api/test_knowledge.py tests/integrity -q
+uv run --cache-dir .uv-cache ruff check apps/api tests/api
+npm run typecheck:python
+npm run typecheck:python:strict-full
+```
+
+Aceite:
+
+```text
+context_bundle.v1 retorna somente conhecimento publicado
+readiness bloqueia unknowns e contradicoes abertas
+hash do bundle e deterministico
+export cria audit log seguro
+nenhum campo sensivel, prompt cru, path local ou conteudo nao publicado aparece no bundle
+```

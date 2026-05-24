@@ -108,3 +108,12 @@ O MVP só está completo quando todos os itens abaixo passam end-to-end.
 - [ ] Gate RLS outsider passa no smoke full: RLS violations = 0
 - [ ] Gate semantico passa com `--predictions` ou `--pilot-report` contendo `semantic_predictions`: precision >= 0.85, recall >= 0.75, critical_false_positives = 0, negative_test_false_positives = 0. Sem predictions, registrar `not_evaluated`.
 
+## Context Bundle v1
+
+- [ ] Context Bundle v1 usa apenas published_sources, published_facts, published_rules e evidencias referenciadas
+- [ ] Context Bundle v1 retorna `schema_version`, `context_version`, `readiness` e `integrity.bundle_hash`
+- [ ] Context Bundle v1 bloqueia readiness quando ha unknown aberto ou contradicao `open`/`needs_review`
+- [ ] Context Bundle v1 nunca inclui secrets, bearer tokens, paths locais, prompts crus, stack traces ou conteudo nao publicado
+- [ ] Export bem-sucedido de Context Bundle gera `audit_logs.action = 'context_bundle.export'`
+- [ ] Gate do Context Bundle passa: `uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\api\test_knowledge.py tests\integrity -q`
+

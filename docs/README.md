@@ -22,6 +22,7 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 | O que entra no MVP | `01-product/MVP_SCOPE.md` |
 | O fluxo tecnico completo | `03-pipeline/PIPELINE.md` |
 | O contrato completo do endpoint de consulta auditavel | `03-pipeline/QUERY.md` |
+| Como exportar contexto para outro chatbot | `03-pipeline/CONTEXT_BUNDLE.md` |
 | Quais dados existem no banco | `04-data/DATA_MODEL.md` |
 | Quais fact types existem | `04-data/SCHEMA_REGISTRY.md` |
 | Como validar seguranca multi-tenant | `05-security/SECURITY_RLS.md` |

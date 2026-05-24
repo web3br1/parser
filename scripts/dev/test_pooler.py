@@ -1,5 +1,7 @@
-import psycopg2
 import urllib.parse
+
+import psycopg2
+
 
 def test_conn():
     password = urllib.parse.unquote("%242y%2410%24XE8gcR4ANOon%2FRYecWspB.D6.IH3rrAcFCi1Hk7NAvKP6HscnJSlC")

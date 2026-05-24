@@ -385,8 +385,8 @@ def test_json_report_redacts_sentinel_secrets(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    secret_url = "postgresql://user:sentinel-password@db.example.test/postgres"
-    secret_key = "sentinel-service-role-key"
+    secret_url = "test-postgres-url-with-password"
+    secret_key = "test-service-role-key-value"
     report_path = tmp_path / "redacted-report.json"
 
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", secret_key)
@@ -412,6 +412,6 @@ def test_json_report_redacts_sentinel_secrets(
     report_text = report_path.read_text(encoding="utf-8")
     assert secret_key not in report_text
     assert secret_url not in report_text
-    assert "sentinel-service-role-key" not in report_text
-    assert "sentinel-password" not in report_text
+    assert "test-service-role-key-value" not in report_text
+    assert "test-postgres-url-with-password" not in report_text
     assert "[REDACTED]" in report_text
