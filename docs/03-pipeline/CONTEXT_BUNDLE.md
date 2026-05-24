@@ -177,6 +177,12 @@ The canonical fixtures live in:
 - `examples/context_bundle/golden-context-bundle.v1.json`
 - `examples/context_bundle/blocked-context-bundle.v1.json`
 
+They are generated and checked by:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
+```
+
 The golden fixture is a ready bundle that should pass importer validation and
 can be used for runtime handoff tests. The blocked fixture contains an open gap
 and `readiness.status = "blocked"`, so a consumer may preview it but must not
@@ -202,5 +208,6 @@ rules, deleted source content, or raw unknown queue content.
 
 ```powershell
 uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\compat\test_context_bundle_golden.py tests\api\test_knowledge.py tests\integrity -q
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
 uv run --cache-dir .uv-cache ruff check apps\api tests\api tests\compat
 ```

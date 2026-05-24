@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from context_builder.schemas.context_bundle import ContextBundleResponse
@@ -26,7 +26,10 @@ PRIVATE_MARKERS = (
 
 
 def _load_fixture(name: str) -> dict[str, Any]:
-    return json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
+    return cast(
+        dict[str, Any],
+        json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8")),
+    )
 
 
 def _public_payload_hash(payload: dict[str, Any]) -> str:
