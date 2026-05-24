@@ -27,6 +27,20 @@ snapshot publishing remains restricted to owner/manager roles.
   "facts": [],
   "rules": [],
   "evidence": [],
+  "identity": {
+    "workspace_name": null,
+    "summary": null,
+    "attributes": {}
+  },
+  "gaps": [],
+  "tests": [],
+  "memory_policy": {
+    "retention": null,
+    "allowed": [],
+    "denied": [],
+    "notes": null
+  },
+  "tool_recommendations": [],
   "readiness": {
     "status": "ready",
     "score": 100,
@@ -39,10 +53,33 @@ snapshot publishing remains restricted to owner/manager roles.
     "source_count": 0,
     "fact_count": 0,
     "rule_count": 0,
-    "evidence_count": 0
+    "evidence_count": 0,
+    "gap_count": 0,
+    "test_count": 0,
+    "tool_recommendation_count": 0
   }
 }
 ```
+
+## Upstream Sections
+
+The v1 contract also carries optional upstream sections:
+
+- `identity`: workspace identity and public operating attributes.
+- `gaps`: known missing or unresolved context items.
+- `tests`: contract/runtime checks produced upstream.
+- `memory_policy`: import guidance for what memory may retain or deny.
+- `tool_recommendations`: tools the consumer runtime may consider.
+
+When upstream data is unavailable, these fields serialize as safe empty
+defaults. They are included in `bundle_hash` and `context_version` after the
+same sanitization pass used for bundle payloads.
+
+The upstream sections are contract-shaped, not arbitrary extension bags. Extra
+top-level fields inside these objects are rejected by the schema; extensibility
+belongs in explicit safe maps such as `identity.attributes`, `gap.details`,
+`test.assertion`, `test.details`, or `tool_recommendation.inputs`. Those maps
+still pass through recursive key and value sanitization before export and hash.
 
 ## Source Shape
 

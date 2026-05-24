@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -9,11 +10,16 @@ from uuid import UUID
 from context_builder.schemas.context_bundle import (
     ContextBundleEvidence,
     ContextBundleFact,
+    ContextBundleGap,
+    ContextBundleIdentity,
     ContextBundleIntegrity,
+    ContextBundleMemoryPolicy,
     ContextBundleReadiness,
     ContextBundleResponse,
     ContextBundleRule,
     ContextBundleSource,
+    ContextBundleTest,
+    ContextBundleToolRecommendation,
 )
 from context_builder.services.query_audit import hash_payload, insert_row
 from context_builder.services.query_evidence import safe_quote
@@ -109,6 +115,11 @@ def build_context_bundle_from_rows(
     evidence: list[dict[str, Any]],
     open_unknown_count: int,
     blocking_contradiction_count: int,
+    identity: dict[str, Any] | None = None,
+    gaps: list[dict[str, Any]] | None = None,
+    tests: list[dict[str, Any]] | None = None,
+    memory_policy: dict[str, Any] | None = None,
+    tool_recommendations: list[dict[str, Any]] | None = None,
 ) -> ContextBundleResponse:
     sorted_sources = _sort_rows(_published_or_statusless_rows(sources))
     sorted_facts = _sort_rows([
@@ -124,6 +135,22 @@ def build_context_bundle_from_rows(
         facts=sorted_facts,
         rules=sorted_rules,
     ))
+    safe_identity = ContextBundleIdentity(**_safe_section_dict(identity))
+    safe_gaps = [
+        ContextBundleGap(**row)
+        for row in _safe_section_rows(gaps)
+    ]
+    safe_tests = [
+        ContextBundleTest(**row)
+        for row in _safe_section_rows(tests)
+    ]
+    safe_memory_policy = ContextBundleMemoryPolicy(
+        **_safe_memory_policy_dict(memory_policy)
+    )
+    safe_tool_recommendations = [
+        ContextBundleToolRecommendation(**row)
+        for row in _safe_section_rows(tool_recommendations)
+    ]
 
     readiness = _readiness(
         sources=sorted_sources,
@@ -139,6 +166,11 @@ def build_context_bundle_from_rows(
         facts=sorted_facts,
         rules=sorted_rules,
         evidence=sorted_evidence,
+        identity=safe_identity,
+        gaps=safe_gaps,
+        tests=safe_tests,
+        memory_policy=safe_memory_policy,
+        tool_recommendations=safe_tool_recommendations,
         readiness=readiness,
     )
     return ContextBundleResponse(
@@ -156,6 +188,11 @@ def build_context_bundle_from_rows(
             for row in sorted_rules
         ],
         evidence=[ContextBundleEvidence(**row) for row in sorted_evidence],
+        identity=safe_identity,
+        gaps=safe_gaps,
+        tests=safe_tests,
+        memory_policy=safe_memory_policy,
+        tool_recommendations=safe_tool_recommendations,
         readiness=readiness,
         integrity=ContextBundleIntegrity(
             bundle_hash=bundle_hash,
@@ -164,6 +201,9 @@ def build_context_bundle_from_rows(
             fact_count=len(sorted_facts),
             rule_count=len(sorted_rules),
             evidence_count=len(sorted_evidence),
+            gap_count=len(safe_gaps),
+            test_count=len(safe_tests),
+            tool_recommendation_count=len(safe_tool_recommendations),
         ),
     )
 
@@ -175,6 +215,11 @@ def _bundle_hash(
     facts: list[dict[str, Any]],
     rules: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
+    identity: ContextBundleIdentity,
+    gaps: list[ContextBundleGap],
+    tests: list[ContextBundleTest],
+    memory_policy: ContextBundleMemoryPolicy,
+    tool_recommendations: list[ContextBundleToolRecommendation],
     readiness: ContextBundleReadiness,
 ) -> str:
     return hash_payload(
@@ -186,6 +231,14 @@ def _bundle_hash(
             "facts": facts,
             "rules": rules,
             "evidence": evidence,
+            "identity": identity.model_dump(mode="json"),
+            "gaps": [gap.model_dump(mode="json") for gap in gaps],
+            "tests": [test.model_dump(mode="json") for test in tests],
+            "memory_policy": memory_policy.model_dump(mode="json"),
+            "tool_recommendations": [
+                recommendation.model_dump(mode="json")
+                for recommendation in tool_recommendations
+            ],
             "readiness": readiness.model_dump(mode="json"),
         }
     )
@@ -315,21 +368,62 @@ def _safe_record_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _safe_section_dict(value: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    safe_value = _safe_payload(value)
+    return safe_value if isinstance(safe_value, dict) else {}
+
+
+def _safe_memory_policy_dict(value: dict[str, Any] | None) -> dict[str, Any]:
+    row = _safe_section_dict(value)
+    for field in ("allowed", "denied"):
+        items = row.get(field)
+        if isinstance(items, list):
+            row[field] = [item for item in items if isinstance(item, str)]
+    return row
+
+
+def _safe_section_rows(value: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        safe_item = _safe_payload(item)
+        if isinstance(safe_item, dict):
+            rows.append(safe_item)
+    return sorted(rows, key=_stable_section_key)
+
+
+def _stable_section_key(row: dict[str, Any]) -> str:
+    return json.dumps(row, default=str, separators=(",", ":"), sort_keys=True)
+
+
 def _safe_payload(value: Any) -> Any:
     return _strip_private_strings(redact_sensitive(value))
 
 
 def _strip_private_strings(value: Any) -> Any:
     if isinstance(value, dict):
-        return {
-            key: _strip_private_strings(item)
-            for key, item in value.items()
-        }
+        safe: dict[str, Any] = {}
+        for key, item in value.items():
+            if _looks_private_key(key):
+                continue
+            safe[key] = _strip_private_strings(item)
+        return safe
     if isinstance(value, list):
         return [_strip_private_strings(item) for item in value]
     if isinstance(value, str) and _looks_private_string(value):
         return None
     return value
+
+
+def _looks_private_key(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    return _looks_private_string(value)
 
 
 def _looks_private_string(value: str) -> bool:
