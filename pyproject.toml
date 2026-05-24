@@ -90,5 +90,6 @@ testpaths = [
   "workers/sync/tests",
   "tests/integrity",
   "tests/api",
+  "tests/compat",
   "tests/smoke",
 ]

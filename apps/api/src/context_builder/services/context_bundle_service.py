@@ -31,6 +31,50 @@ SCHEMA_VERSION: Literal["context_bundle.v1"] = "context_bundle.v1"
 CANONICALIZATION = "json.sort_keys.compact.v1"
 LOW_CONFIDENCE_THRESHOLD = 0.75
 BUNDLE_QUOTE_ROLE = "viewer"
+SOURCE_PUBLIC_FIELDS = (
+    "id",
+    "title",
+    "original_filename",
+    "type",
+    "source_reliability",
+    "authority_level",
+    "status",
+    "created_at",
+    "updated_at",
+)
+FACT_PUBLIC_FIELDS = (
+    "id",
+    "fact_type",
+    "schema_version",
+    "normalized_content",
+    "confidence",
+    "source_id",
+    "chunk_id",
+    "evidence_span_ids",
+    "published_at",
+)
+RULE_PUBLIC_FIELDS = (
+    "id",
+    "rule_type",
+    "schema_version",
+    "condition",
+    "action",
+    "priority",
+    "confidence",
+    "source_id",
+    "chunk_id",
+    "evidence_span_ids",
+    "published_at",
+)
+EVIDENCE_PUBLIC_FIELDS = (
+    "id",
+    "source_id",
+    "chunk_id",
+    "quote",
+    "page_number",
+    "sheet_name",
+    "row_number",
+)
 PRIVATE_QUOTE_PATTERNS = (
     re.compile(r"\b[A-Za-z]:\\(?:Users|Documents and Settings)\\", re.IGNORECASE),
     re.compile(r"(^|\s)/(?:Users|home|root)/", re.IGNORECASE),
@@ -151,6 +195,7 @@ def build_context_bundle_from_rows(
         ContextBundleToolRecommendation(**row)
         for row in _safe_section_rows(tool_recommendations)
     ]
+    bundle_workspace_id = UUID(workspace_id)
 
     readiness = _readiness(
         sources=sorted_sources,
@@ -160,12 +205,34 @@ def build_context_bundle_from_rows(
         open_unknown_count=open_unknown_count,
         blocking_contradiction_count=blocking_contradiction_count,
     )
+    bundle_sources = [
+        ContextBundleSource(**_project_fields(row, SOURCE_PUBLIC_FIELDS))
+        for row in sorted_sources
+    ]
+    bundle_facts = [
+        ContextBundleFact(**_project_fields(
+            _with_evidence_ids(row, sorted_evidence),
+            FACT_PUBLIC_FIELDS,
+        ))
+        for row in sorted_facts
+    ]
+    bundle_rules = [
+        ContextBundleRule(**_project_fields(
+            _with_evidence_ids(row, sorted_evidence),
+            RULE_PUBLIC_FIELDS,
+        ))
+        for row in sorted_rules
+    ]
+    bundle_evidence = [
+        ContextBundleEvidence(**_project_fields(row, EVIDENCE_PUBLIC_FIELDS))
+        for row in sorted_evidence
+    ]
     bundle_hash = _bundle_hash(
-        workspace_id=workspace_id,
-        sources=sorted_sources,
-        facts=sorted_facts,
-        rules=sorted_rules,
-        evidence=sorted_evidence,
+        workspace_id=str(bundle_workspace_id),
+        sources=bundle_sources,
+        facts=bundle_facts,
+        rules=bundle_rules,
+        evidence=bundle_evidence,
         identity=safe_identity,
         gaps=safe_gaps,
         tests=safe_tests,
@@ -176,18 +243,12 @@ def build_context_bundle_from_rows(
     return ContextBundleResponse(
         schema_version=SCHEMA_VERSION,
         context_version=f"ctx_{bundle_hash[:12]}",
-        workspace_id=UUID(workspace_id),
+        workspace_id=bundle_workspace_id,
         generated_at=datetime.now(UTC),
-        sources=[ContextBundleSource(**row) for row in sorted_sources],
-        facts=[
-            ContextBundleFact(**_with_evidence_ids(row, sorted_evidence))
-            for row in sorted_facts
-        ],
-        rules=[
-            ContextBundleRule(**_with_evidence_ids(row, sorted_evidence))
-            for row in sorted_rules
-        ],
-        evidence=[ContextBundleEvidence(**row) for row in sorted_evidence],
+        sources=bundle_sources,
+        facts=bundle_facts,
+        rules=bundle_rules,
+        evidence=bundle_evidence,
         identity=safe_identity,
         gaps=safe_gaps,
         tests=safe_tests,
@@ -211,10 +272,10 @@ def build_context_bundle_from_rows(
 def _bundle_hash(
     *,
     workspace_id: str,
-    sources: list[dict[str, Any]],
-    facts: list[dict[str, Any]],
-    rules: list[dict[str, Any]],
-    evidence: list[dict[str, Any]],
+    sources: list[ContextBundleSource],
+    facts: list[ContextBundleFact],
+    rules: list[ContextBundleRule],
+    evidence: list[ContextBundleEvidence],
     identity: ContextBundleIdentity,
     gaps: list[ContextBundleGap],
     tests: list[ContextBundleTest],
@@ -227,10 +288,10 @@ def _bundle_hash(
             "schema_version": SCHEMA_VERSION,
             "workspace_id": workspace_id,
             "generated_at": "stable-for-hash",
-            "sources": sources,
-            "facts": facts,
-            "rules": rules,
-            "evidence": evidence,
+            "sources": [source.model_dump(mode="json") for source in sources],
+            "facts": [fact.model_dump(mode="json") for fact in facts],
+            "rules": [rule.model_dump(mode="json") for rule in rules],
+            "evidence": [span.model_dump(mode="json") for span in evidence],
             "identity": identity.model_dump(mode="json"),
             "gaps": [gap.model_dump(mode="json") for gap in gaps],
             "tests": [test.model_dump(mode="json") for test in tests],
@@ -304,6 +365,13 @@ def _with_evidence_ids(
         if evidence_span_id in available_ids
     ]
     return {**row, "evidence_span_ids": evidence_span_ids}
+
+
+def _project_fields(
+    row: dict[str, Any],
+    fields: tuple[str, ...],
+) -> dict[str, Any]:
+    return {field: row[field] for field in fields if field in row}
 
 
 def _load_evidence(

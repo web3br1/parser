@@ -1,0 +1,233 @@
+{
+  "schema_version": "context_bundle.v1",
+  "context_version": "ctx_8987937f4c70",
+  "workspace_id": "5f7c6e4d-0000-4000-8000-000000000001",
+  "generated_at": "2026-05-24T12:00:00Z",
+  "sources": [
+    {
+      "id": "5f7c6e4d-0000-4000-8000-000000000010",
+      "title": "Tabela de precos publicada",
+      "original_filename": "clinica-luminaris-precos.md",
+      "type": "markdown",
+      "source_reliability": "official",
+      "authority_level": "published_policy",
+      "status": "published",
+      "created_at": "2026-05-24T10:00:00Z",
+      "updated_at": "2026-05-24T10:30:00Z"
+    }
+  ],
+  "facts": [
+    {
+      "id": "5f7c6e4d-0000-4000-8000-000000000020",
+      "fact_type": "service_price",
+      "schema_version": "fact.v1",
+      "normalized_content": {
+        "service_name": "Limpeza de pele",
+        "price": {
+          "amount": 120,
+          "currency": "BRL"
+        },
+        "payment_method": "Pix",
+        "discount_percent": 5
+      },
+      "confidence": 0.96,
+      "source_id": "5f7c6e4d-0000-4000-8000-000000000010",
+      "chunk_id": "5f7c6e4d-0000-4000-8000-000000000050",
+      "evidence_span_ids": [
+        "5f7c6e4d-0000-4000-8000-000000000030"
+      ],
+      "published_at": "2026-05-24T11:00:00Z"
+    }
+  ],
+  "rules": [
+    {
+      "id": "5f7c6e4d-0000-4000-8000-000000000040",
+      "rule_type": "commercial_policy",
+      "schema_version": "rule.v1",
+      "condition": {
+        "payment_method": "Pix"
+      },
+      "action": {
+        "allow_discount_percent": 5,
+        "restriction": "Do not promise unpublished discounts."
+      },
+      "priority": 90,
+      "confidence": 0.94,
+      "source_id": "5f7c6e4d-0000-4000-8000-000000000010",
+      "chunk_id": "5f7c6e4d-0000-4000-8000-000000000050",
+      "evidence_span_ids": [
+        "5f7c6e4d-0000-4000-8000-000000000030"
+      ],
+      "published_at": "2026-05-24T11:05:00Z"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "5f7c6e4d-0000-4000-8000-000000000030",
+      "source_id": "5f7c6e4d-0000-4000-8000-000000000010",
+      "chunk_id": "5f7c6e4d-0000-4000-8000-000000000050",
+      "quote": "Limpeza de pele: R$120. Pagamentos via Pix recebem 5% de desconto.",
+      "page_number": null,
+      "sheet_name": null,
+      "row_number": 12
+    }
+  ],
+  "identity": {
+    "workspace_name": "Clinica Luminaris",
+    "summary": "Clinica de estetica com servicos faciais e corporais.",
+    "attributes": {
+      "business_type": "aesthetic_clinic",
+      "default_language": "pt-BR",
+      "locale": "pt-BR",
+      "timezone": "America/Sao_Paulo",
+      "brand_voice": {
+        "tone": "calm",
+        "style": "objective",
+        "avoid": [
+          "Do not promise unpublished discounts."
+        ]
+      }
+    }
+  },
+  "gaps": [
+    {
+      "id": "gap_5f7c6e4d_0001",
+      "kind": "missing_policy",
+      "description": "Cancellation policy was not present in the published corpus.",
+      "severity": "blocking",
+      "status": "open",
+      "source_ids": [
+        "5f7c6e4d-0000-4000-8000-000000000010"
+      ],
+      "created_at": "2026-05-24T11:20:00Z",
+      "details": {
+        "missing_field": "cancellation_policy"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "ctx_test_5f7c6e4d_0002",
+      "name": "cancellation_policy_unknown",
+      "status": "blocked",
+      "prompt": "Posso cancelar a limpeza de pele no mesmo dia?",
+      "expected_behavior": "Do not invent a cancellation policy; surface the knowledge gap.",
+      "expected_answer_contains": [
+        "nao tenho essa politica publicada"
+      ],
+      "forbidden_answer_contains": [
+        "cancelamento gratis",
+        "multa de cancelamento"
+      ],
+      "required_fact_ids": [],
+      "required_rule_ids": [],
+      "required_evidence_span_ids": [],
+      "must_not_use_unvalidated_data": true,
+      "critical": true,
+      "assertion": {
+        "answer_state": "gap_required"
+      },
+      "details": {
+        "gap_id": "gap_5f7c6e4d_0001"
+      }
+    },
+    {
+      "id": "ctx_test_5f7c6e4d_0001",
+      "name": "price_pix_discount",
+      "status": "pending",
+      "prompt": "Qual e o preco da limpeza de pele se eu pagar via Pix?",
+      "expected_behavior": "Answer with the published price and Pix discount, citing evidence.",
+      "expected_answer_contains": [
+        "Limpeza de pele",
+        "R$120",
+        "5%",
+        "Pix"
+      ],
+      "forbidden_answer_contains": [
+        "estimated price",
+        "no evidence",
+        "local path",
+        "token"
+      ],
+      "required_fact_ids": [
+        "5f7c6e4d-0000-4000-8000-000000000020"
+      ],
+      "required_rule_ids": [
+        "5f7c6e4d-0000-4000-8000-000000000040"
+      ],
+      "required_evidence_span_ids": [
+        "5f7c6e4d-0000-4000-8000-000000000030"
+      ],
+      "must_not_use_unvalidated_data": true,
+      "critical": true,
+      "assertion": {
+        "answer_state": "valid_answer"
+      },
+      "details": {
+        "source_title": "Tabela de precos publicada"
+      }
+    }
+  ],
+  "memory_policy": {
+    "retention": "none",
+    "profile_memory": "disabled",
+    "conversation_memory": "session_only",
+    "persist_user_personal_data": false,
+    "store_unvalidated_claims": false,
+    "retention_days": 0,
+    "allowed_memory_scopes": [
+      "active_context_version"
+    ],
+    "deletion_policy": "delete_imported_context_on_workspace_delete",
+    "allowed": [
+      "published_facts",
+      "published_rules",
+      "evidence_refs"
+    ],
+    "denied": [
+      "secrets"
+    ],
+    "notes": null
+  },
+  "tool_recommendations": [
+    {
+      "id": "toolrec_5f7c6e4d_0001",
+      "tool_name": "search_knowledge",
+      "category": "read_only",
+      "risk_level": "low",
+      "recommended": true,
+      "allowed_operations": [
+        "semantic_search",
+        "lookup_by_source",
+        "lookup_by_evidence"
+      ],
+      "requires_human_approval": false,
+      "input_policy": "no_secrets_no_raw_documents",
+      "output_policy": "cite_evidence_ids",
+      "reason": "Answer service questions with published evidence.",
+      "confidence": 0.92,
+      "inputs": {
+        "workspace_scope": "active_context_version"
+      }
+    }
+  ],
+  "readiness": {
+    "status": "blocked",
+    "score": 75,
+    "blocking_reasons": [
+      "open_unknown_items"
+    ],
+    "warnings": []
+  },
+  "integrity": {
+    "bundle_hash": "8987937f4c70e1b416947b8c87810f6f6fa9e8aee434949d189137de5776bdcd",
+    "canonicalization": "json.sort_keys.compact.v1",
+    "source_count": 1,
+    "fact_count": 1,
+    "rule_count": 1,
+    "evidence_count": 1,
+    "gap_count": 1,
+    "test_count": 2,
+    "tool_recommendation_count": 1
+  }
+}

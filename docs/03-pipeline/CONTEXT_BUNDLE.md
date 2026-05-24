@@ -61,6 +61,34 @@ snapshot publishing remains restricted to owner/manager roles.
 }
 ```
 
+## Hash And Versioning
+
+`integrity.bundle_hash` is a SHA-256 hex digest computed with
+`json.sort_keys.compact.v1`. The hash payload is the public bundle payload that
+an importer receives, except `generated_at` is replaced by
+`stable-for-hash`.
+
+The hash includes:
+
+- `schema_version`
+- `workspace_id`
+- `sources`
+- `facts`
+- `rules`
+- `evidence`
+- `identity`
+- `gaps`
+- `tests`
+- `memory_policy`
+- `tool_recommendations`
+- `readiness`
+
+It does not include `integrity` or `context_version`. `context_version` is
+derived from the hash as `ctx_{first_12_hex_chars}`.
+
+This means a consumer runtime can validate bundle integrity from the exported
+JSON alone, without access to internal database rows.
+
 ## Upstream Sections
 
 The v1 contract also carries optional upstream sections:
@@ -75,11 +103,12 @@ When upstream data is unavailable, these fields serialize as safe empty
 defaults. They are included in `bundle_hash` and `context_version` after the
 same sanitization pass used for bundle payloads.
 
-The upstream sections are contract-shaped, not arbitrary extension bags. Extra
-top-level fields inside these objects are rejected by the schema; extensibility
-belongs in explicit safe maps such as `identity.attributes`, `gap.details`,
-`test.assertion`, `test.details`, or `tool_recommendation.inputs`. Those maps
-still pass through recursive key and value sanitization before export and hash.
+The envelope and upstream sections are contract-shaped, not arbitrary extension
+bags. Extra top-level fields and extra fields inside these objects are rejected
+by the schema. Extensibility belongs in explicit safe maps such as
+`identity.attributes`, `gap.details`, `test.assertion`, `test.details`, or
+`tool_recommendation.inputs`. Those maps still pass through recursive key and
+value sanitization before export and hash.
 
 ## Source Shape
 
@@ -141,6 +170,28 @@ Every successful export writes `audit_logs.action = 'context_bundle.export'`.
 Because v1 has no persisted snapshot row, `audit_logs.resource_id` stays null
 and `context_version` is stored in metadata.
 
+## Compatibility Fixtures
+
+The canonical fixtures live in:
+
+- `examples/context_bundle/golden-context-bundle.v1.json`
+- `examples/context_bundle/blocked-context-bundle.v1.json`
+
+The golden fixture is a ready bundle that should pass importer validation and
+can be used for runtime handoff tests. The blocked fixture contains an open gap
+and `readiness.status = "blocked"`, so a consumer may preview it but must not
+activate it.
+
+Consumer projects should validate at least:
+
+- schema version and strict envelope fields;
+- `integrity.bundle_hash` from the public payload;
+- `context_version` prefix from the hash;
+- integrity counts against actual array lengths;
+- readiness activation rules;
+- absence of secrets, local paths, raw prompts, provider responses, and stack
+  traces.
+
 ## Security Exclusions
 
 The bundle must not include secrets, bearer tokens, signed URLs, local file
@@ -150,6 +201,6 @@ rules, deleted source content, or raw unknown queue content.
 ## Focused Gate
 
 ```powershell
-uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\api\test_knowledge.py tests\integrity -q
-uv run --cache-dir .uv-cache ruff check apps\api tests\api
+uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\compat\test_context_bundle_golden.py tests\api\test_knowledge.py tests\integrity -q
+uv run --cache-dir .uv-cache ruff check apps\api tests\api tests\compat
 ```

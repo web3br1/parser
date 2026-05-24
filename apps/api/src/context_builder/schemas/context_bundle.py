@@ -11,7 +11,7 @@ class ContextBundleContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ContextBundleSource(BaseModel):
+class ContextBundleSource(ContextBundleContractModel):
     id: UUID
     title: str | None = None
     original_filename: str | None = None
@@ -23,7 +23,7 @@ class ContextBundleSource(BaseModel):
     updated_at: datetime | None = None
 
 
-class ContextBundleFact(BaseModel):
+class ContextBundleFact(ContextBundleContractModel):
     id: UUID
     fact_type: str
     schema_version: str
@@ -35,7 +35,7 @@ class ContextBundleFact(BaseModel):
     published_at: datetime | None = None
 
 
-class ContextBundleRule(BaseModel):
+class ContextBundleRule(ContextBundleContractModel):
     id: UUID
     rule_type: str
     schema_version: str
@@ -49,7 +49,7 @@ class ContextBundleRule(BaseModel):
     published_at: datetime | None = None
 
 
-class ContextBundleEvidence(BaseModel):
+class ContextBundleEvidence(ContextBundleContractModel):
     id: UUID
     source_id: UUID
     chunk_id: UUID | None = None
@@ -59,7 +59,7 @@ class ContextBundleEvidence(BaseModel):
     row_number: int | None = None
 
 
-class ContextBundleReadiness(BaseModel):
+class ContextBundleReadiness(ContextBundleContractModel):
     status: Literal["ready", "warning", "blocked"]
     score: int
     blocking_reasons: list[str] = Field(default_factory=list)
@@ -129,7 +129,7 @@ class ContextBundleToolRecommendation(ContextBundleContractModel):
     inputs: dict[str, Any] = Field(default_factory=dict)
 
 
-class ContextBundleIntegrity(BaseModel):
+class ContextBundleIntegrity(ContextBundleContractModel):
     bundle_hash: str
     canonicalization: str = "json.sort_keys.compact.v1"
     source_count: int
@@ -141,7 +141,7 @@ class ContextBundleIntegrity(BaseModel):
     tool_recommendation_count: int = 0
 
 
-class ContextBundleResponse(BaseModel):
+class ContextBundleResponse(ContextBundleContractModel):
     schema_version: Literal["context_bundle.v1"]
     context_version: str
     workspace_id: UUID
