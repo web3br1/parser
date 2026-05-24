@@ -1,0 +1,114 @@
+name: context-builder-local
+
+x-python-service: &python-service
+  build:
+    context: .
+    dockerfile: Dockerfile.python
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    APP_ENV: development
+    API_BASE_URL: http://localhost:8000
+    SUPABASE_URL: ${SUPABASE_URL:-}
+    SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+    SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+    WORKSPACE_STORAGE_BUCKET: ${WORKSPACE_STORAGE_BUCKET:-context-builder-private}
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/0
+    CELERY_TASK_ALWAYS_EAGER: "0"
+    OLLAMA_BASE_URL: http://host.docker.internal:11434
+  depends_on:
+    redis:
+      condition: service_healthy
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *python-service
+    command: ["uvicorn", "context_builder.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker-ingest:
+    <<: *python-service
+    command:
+      [
+        "celery",
+        "-A",
+        "worker_ingest.celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=ingest",
+        "--hostname=ingest@%h",
+      ]
+
+  worker-classification:
+    <<: *python-service
+    command:
+      [
+        "celery",
+        "-A",
+        "worker_classification.celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=classification",
+        "--hostname=classification@%h",
+      ]
+
+  worker-extraction:
+    <<: *python-service
+    command:
+      [
+        "celery",
+        "-A",
+        "worker_extraction.celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=extraction",
+        "--concurrency=2",
+        "--hostname=extraction@%h",
+      ]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  redis-data:

@@ -449,7 +449,17 @@ def test_check_local_stack_detects_duplicate_workers() -> None:
     assert "Duplicate worker processes detected" in script
 
 
-def test_docker_is_not_a_project_runtime_contract() -> None:
+def test_docker_local_runtime_uses_root_compose_not_legacy_infra_layout() -> None:
+    assert (ROOT / "compose.yaml").exists()
+    assert (ROOT / "Dockerfile.python").exists()
+    assert (ROOT / "Dockerfile.web").exists()
+    assert (ROOT / ".dockerignore").exists()
+    assert (ROOT / ".env.docker.example").exists()
+    assert (ROOT / "docs" / "operations" / "DOCKER_LOCAL_RUNTIME.md").exists()
+    assert (ROOT / "docs" / "operations" / "LOCAL_RUNTIME.md").exists()
+
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "!.env.docker.example" in gitignore
     assert not (ROOT / "infra" / "docker-compose.yml").exists()
     assert not (ROOT / "infra" / "docker" / "Dockerfile.api").exists()
     assert not (ROOT / "infra" / "docker" / "Dockerfile.worker").exists()
