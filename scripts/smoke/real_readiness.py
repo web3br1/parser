@@ -36,10 +36,9 @@ REQUIRED_BUCKET = "context-builder-private"
 REQUIRED_SCRIPTS = (
     "scripts/smoke/check_supabase_contracts.py",
     "scripts/smoke/supabase_smoke.py",
-    "scripts/dev/check_local_stack.ps1",
-    "scripts/dev/start_local_stack.ps1",
     "scripts/smoke/diagnose_source.py",
     "scripts/smoke/cleanup_smoke.py",
+    "scripts/ops/storage_gc.py",
 )
 MIGRATION_RE = re.compile(r"^(\d{3})_.*\.sql$")
 

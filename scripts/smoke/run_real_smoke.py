@@ -98,10 +98,6 @@ def python_cmd(script: str, *args: str) -> list[str]:
     return [sys.executable, script, *args]
 
 
-def powershell_cmd(script: str, *args: str) -> list[str]:
-    return ["powershell", "-File", script, *args]
-
-
 def api_base_url(args: argparse.Namespace, env: Mapping[str, str]) -> str:
     value = args.api_base_url or env.get("API_BASE_URL") or DEFAULT_API_BASE_URL
     return value.rstrip("/")
@@ -136,36 +132,6 @@ def build_phases(args: argparse.Namespace, env: Mapping[str, str]) -> list[Phase
                 "subprocess",
                 python_cmd("scripts/smoke/check_supabase_contracts.py"),
                 timeout_seconds=900.0,
-                env_overrides=common_env,
-            )
-        )
-
-    if args.target == "local" and args.start_stack:
-        phases.extend(
-            [
-                Phase(
-                    "setup-redis",
-                    "subprocess",
-                    powershell_cmd("scripts/dev/setup_redis_windows.ps1"),
-                    timeout_seconds=900.0,
-                    env_overrides=common_env,
-                ),
-                Phase(
-                    "start-stack",
-                    "subprocess",
-                    powershell_cmd("scripts/dev/start_local_stack.ps1"),
-                    timeout_seconds=900.0,
-                    env_overrides=common_env,
-                ),
-            ]
-        )
-
-    if args.target == "local" and not args.skip_stack_check:
-        phases.append(
-            Phase(
-                "stack-check",
-                "subprocess",
-                powershell_cmd("scripts/dev/check_local_stack.ps1"),
                 env_overrides=common_env,
             )
         )
@@ -307,10 +273,6 @@ def print_phase_result(result: PhaseResult) -> None:
 
 
 def validate_args(args: argparse.Namespace, env: Mapping[str, str]) -> str | None:
-    if args.target == "cloud" and args.start_stack:
-        return "--target cloud cannot be combined with --start-stack"
-    if args.start_stack and args.no_start:
-        return "--start-stack cannot be combined with --no-start"
     if args.target == "cloud" and not (args.api_base_url or env.get("API_BASE_URL")):
         return "--target cloud requires --api-base-url or API_BASE_URL"
     return None
@@ -322,11 +284,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full", action="store_true", help="Run full smoke after minimum smoke.")
     parser.add_argument("--json-report", default=None, help="Write orchestration JSON report.")
     parser.add_argument("--api-base-url", default=None, help="Override API_BASE_URL.")
-    parser.add_argument("--start-stack", action="store_true", help="Start local Redis/API/workers.")
-    parser.add_argument("--no-start", action="store_true", help="Refuse to start local services.")
     parser.add_argument("--skip-readiness", action="store_true", help="Skip local readiness phase.")
     parser.add_argument("--skip-contracts", action="store_true", help="Skip Supabase contract phase.")
-    parser.add_argument("--skip-stack-check", action="store_true", help="Skip local stack preflight.")
     parser.add_argument("--continue-on-failure", action="store_true", help="Run later phases after failures.")
     parser.add_argument("--dry-run", action="store_true", help="Plan phases without subprocesses or HTTP.")
     return parser.parse_args(argv)

@@ -6,7 +6,7 @@ Escopo canonico:
 
 - migrations `000` a `042` aplicadas no projeto Supabase dev
 - bucket privado `context-builder-private`
-- stack local iniciado por `scripts/dev/start_local_stack.ps1`
+- API, Redis e workers iniciados fora do orquestrador de smoke
 - smoke minimo primeiro
 - smoke completo apenas depois do minimo passar
 - scripts oficiais em `scripts/smoke/*.py`
@@ -114,31 +114,13 @@ from storage.buckets
 where id = 'context-builder-private';
 ```
 
-## 3. Validar preflight local
+## 3. Subir runtime local
 
-Na raiz do projeto:
+Suba Redis, API e workers por um processo externo ao orquestrador de smoke. O
+script `scripts/smoke/run_real_smoke.py` valida a stack ja iniciada; ele nao
+inicia, para, nem inspeciona processos locais.
 
-```powershell
-.\scripts\dev\check_local_stack.ps1
-```
-
-Este check confirma `.env`, `uv`, `npx` e conectividade TCP com o Redis apontado por
-`REDIS_URL`.
-
-## 4. Subir stack local
-
-Na raiz do projeto:
-
-```powershell
-.\scripts\dev\start_local_stack.ps1
-```
-
-Por padrao, este comando forca `CELERY_TASK_ALWAYS_EAGER=0` para validar API,
-Redis e workers reais. Para uma rodada local rapida sem fila real, use:
-
-```powershell
-.\scripts\dev\start_local_stack.ps1 -Eager
-```
+## 4. Validar runtime local
 
 Health check:
 
@@ -162,21 +144,7 @@ Servicos esperados:
 | worker-classification | - | classificacao de chunks |
 | worker-extraction | - | extracao estruturada |
 
-Logs locais:
-
-```text
-.run/logs/api.out.log
-.run/logs/api.err.log
-.run/logs/worker-ingest.out.log
-.run/logs/worker-classification.out.log
-.run/logs/worker-extraction.out.log
-```
-
-Para parar:
-
-```powershell
-.\scripts\dev\stop_local_stack.ps1
-```
+Use os logs do processo externo escolhido para API e workers.
 
 ## 5. Rodar contratos estaticos
 
@@ -254,24 +222,17 @@ published_facts contem o fato publicado
 
 ## Troubleshooting
 
-### Stack local nao sobe
+### Runtime local nao responde
 
-```powershell
-.\scripts\dev\check_local_stack.ps1
-Get-Content .run\logs\api.err.log -Tail 100
-Get-Content .run\logs\worker-ingest.err.log -Tail 100
-```
-
-Confirme que `.env` existe, nao contem valores vazios para Supabase e que `REDIS_URL`
-aponta para um Redis acessivel.
+Confirme que `.env` existe, nao contem valores vazios para Supabase, que
+`REDIS_URL` aponta para um Redis acessivel e que API/workers foram iniciados
+pelo processo externo escolhido. O orquestrador de smoke nao inicia nem para
+servicos locais.
 
 ### Pipeline fica parado
 
-```powershell
-Get-Content .run\logs\worker-ingest.err.log -Tail 100
-Get-Content .run\logs\worker-classification.err.log -Tail 100
-Get-Content .run\logs\worker-extraction.err.log -Tail 100
-```
+Consulte os logs do processo externo que iniciou `worker-ingest`,
+`worker-classification` e `worker-extraction`.
 
 SQL util:
 
@@ -332,8 +293,7 @@ Use `--mode orphans` apenas para objetos antigos sem referencia em `sources`.
 - [ ] Migrations `000-042` aplicadas sem erro.
 - [ ] Bucket `context-builder-private` existe e e privado.
 - [ ] Redis esta acessivel via `REDIS_URL`.
-- [ ] `.\scripts\dev\check_local_stack.ps1` passa.
-- [ ] Stack local sobe com `.\scripts\dev\start_local_stack.ps1`.
+- [ ] API, Redis e workers foram iniciados fora do orquestrador de smoke.
 - [ ] `GET /health` retorna 200.
 - [ ] `scripts/smoke/check_supabase_contracts.py` passa.
 - [ ] `scripts/smoke/supabase_smoke.py` passa no modo minimo.

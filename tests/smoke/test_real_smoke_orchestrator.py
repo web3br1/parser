@@ -92,7 +92,7 @@ def fake_subprocess(real_smoke: Any, monkeypatch: pytest.MonkeyPatch) -> list[li
     return calls
 
 
-def test_local_full_phase_order_includes_stack_health_and_both_smokes(
+def test_local_full_phase_order_validates_running_runtime_without_stack_check(
     real_smoke: Any,
     fake_subprocess: list[list[str]],
     fake_health: list[str],
@@ -109,7 +109,6 @@ def test_local_full_phase_order_includes_stack_health_and_both_smokes(
     assert phase_names(report_path) == [
         "readiness",
         "contracts",
-        "stack-check",
         "health",
         "smoke-min",
         "smoke-full",
@@ -117,46 +116,19 @@ def test_local_full_phase_order_includes_stack_health_and_both_smokes(
     executed = [command_text(command) for command in fake_subprocess]
     assert "scripts/smoke/real_readiness.py" in executed[0].replace("\\", "/")
     assert "scripts/smoke/check_supabase_contracts.py" in executed[1].replace("\\", "/")
-    assert "scripts/dev/check_local_stack.ps1" in executed[2].replace("\\", "/")
+    assert "scripts/smoke/supabase_smoke.py" in executed[2].replace("\\", "/")
     assert "scripts/smoke/supabase_smoke.py" in executed[3].replace("\\", "/")
-    assert "scripts/smoke/supabase_smoke.py" in executed[4].replace("\\", "/")
-    assert "--full" in executed[4]
+    assert "--full" in executed[3]
+    assert all("scripts/dev/" not in command.replace("\\", "/") for command in executed)
     assert fake_health == ["http://localhost:8000/health"]
 
 
-def test_local_start_stack_adds_opt_in_stack_start_phases(
+@pytest.mark.parametrize("legacy_flag", ["--start-stack", "--skip-stack-check", "--no-start"])
+def test_legacy_stack_flags_are_rejected_as_unknown(
     real_smoke: Any,
-    fake_subprocess: list[list[str]],
-    fake_health: list[str],
-    tmp_path: Path,
+    legacy_flag: str,
 ) -> None:
-    report_path = tmp_path / "local-start-stack.json"
-
-    code = run_cli(
-        real_smoke,
-        [
-            "--target",
-            "local",
-            "--start-stack",
-            "--json-report",
-            str(report_path),
-        ],
-    )
-
-    assert code == 0
-    assert phase_names(report_path) == [
-        "readiness",
-        "contracts",
-        "setup-redis",
-        "start-stack",
-        "stack-check",
-        "health",
-        "smoke-min",
-    ]
-    executed = [command_text(command).replace("\\", "/") for command in fake_subprocess]
-    assert any("scripts/dev/setup_redis_windows.ps1" in command for command in executed)
-    assert any("scripts/dev/start_local_stack.ps1" in command for command in executed)
-    assert fake_health == ["http://localhost:8000/health"]
+    assert run_cli(real_smoke, [legacy_flag]) == 2
 
 
 def test_cloud_full_skips_local_stack_phases_and_uses_api_base_url(
@@ -229,7 +201,7 @@ def test_cloud_requires_explicit_api_base_url_when_env_missing(
     assert report["phases"] == []
 
 
-def test_skip_flags_remove_readiness_contracts_and_stack_check(
+def test_skip_flags_remove_readiness_and_contracts(
     real_smoke: Any,
     tmp_path: Path,
 ) -> None:
@@ -242,7 +214,6 @@ def test_skip_flags_remove_readiness_contracts_and_stack_check(
             "local",
             "--skip-readiness",
             "--skip-contracts",
-            "--skip-stack-check",
             "--dry-run",
             "--json-report",
             str(report_path),
@@ -324,12 +295,12 @@ def test_continue_on_failure_records_later_safe_phases(
     assert phase_names(report_path) == [
         "readiness",
         "contracts",
-        "stack-check",
         "health",
         "smoke-min",
         "smoke-full",
     ]
-    assert len(calls) == 5
+    assert len(calls) == 4
+    assert all("scripts/dev/" not in command for command in calls)
     assert fake_health == ["http://localhost:8000/health"]
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "failed"
@@ -377,6 +348,8 @@ def test_dry_run_records_planned_phases_without_execution(
         "smoke-full",
     ]
     assert all(phase["status"] == "planned" for phase in report["phases"])
+    planned_commands = [command_text(phase["command"]).replace("\\", "/") for phase in report["phases"]]
+    assert all("scripts/dev/" not in command for command in planned_commands)
 
 
 def test_json_report_redacts_sentinel_secrets(

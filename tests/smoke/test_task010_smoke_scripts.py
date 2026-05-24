@@ -324,6 +324,21 @@ def test_required_task010_scripts_exist() -> None:
     assert (ROOT / "scripts" / "dev" / "setup_redis_windows.ps1").exists()
 
 
+def test_real_smoke_orchestrator_does_not_reference_dev_runtime_scripts() -> None:
+    script = (ROOT / "scripts" / "smoke" / "run_real_smoke.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "powershell_cmd" not in script
+    assert "--start-stack" not in script
+    assert "--no-start" not in script
+    assert "--skip-stack-check" not in script
+    assert "setup-redis" not in script
+    assert "start-stack" not in script
+    assert "stack-check" not in script
+    assert "scripts/dev/" not in script.replace("\\", "/")
+
+
 def test_setup_redis_windows_uses_portable_redis_without_service_install() -> None:
     script = (ROOT / "scripts" / "dev" / "setup_redis_windows.ps1").read_text(
         encoding="utf-8"

@@ -11,10 +11,9 @@ MODULE_PATH = ROOT / "scripts" / "smoke" / "real_readiness.py"
 REQUIRED_SCRIPTS = [
     Path("scripts/smoke/check_supabase_contracts.py"),
     Path("scripts/smoke/supabase_smoke.py"),
-    Path("scripts/dev/check_local_stack.ps1"),
-    Path("scripts/dev/start_local_stack.ps1"),
     Path("scripts/smoke/diagnose_source.py"),
     Path("scripts/smoke/cleanup_smoke.py"),
+    Path("scripts/ops/storage_gc.py"),
 ]
 
 
@@ -110,6 +109,15 @@ def test_ready_project_passes_local_readiness_checks(tmp_path: Path) -> None:
     _checks, report = collect_report(module, tmp_path, env_file)
 
     assert report["status"] == "passed"
+
+
+def test_required_scripts_exclude_runtime_powershell_helpers() -> None:
+    module = load_real_readiness()
+
+    required = [str(path).replace("\\", "/") for path in module.REQUIRED_SCRIPTS]
+
+    assert "scripts/ops/storage_gc.py" in required
+    assert all(not path.startswith("scripts/dev/") for path in required)
 
 
 def test_missing_env_values_fail_without_leaking_secret_values(tmp_path: Path) -> None:
