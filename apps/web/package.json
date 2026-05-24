@@ -5,6 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "pilot-flow:test": "node scripts/test-pilot-flow.mjs",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

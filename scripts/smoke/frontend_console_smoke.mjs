@@ -11,6 +11,7 @@ const WEB_DIR = join(ROOT, "apps", "web");
 const DEFAULT_ROUTES = [
   "/login",
   "/workspaces/demo",
+  "/workspaces/demo/pilot-test",
   "/workspaces/demo/sources",
   "/workspaces/demo/sources/demo-source",
   "/workspaces/demo/review",

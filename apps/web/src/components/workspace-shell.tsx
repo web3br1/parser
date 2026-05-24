@@ -7,6 +7,7 @@ import {
   Archive,
   BookOpen,
   Database,
+  FlaskConical,
   HelpCircle,
   LayoutDashboard,
   type LucideIcon,
@@ -25,6 +26,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "", icon: LayoutDashboard },
+  { label: "Pilot Test", href: "pilot-test", icon: FlaskConical },
   { label: "Sources", href: "sources", icon: Database },
   { label: "Review Queue", href: "review", icon: Archive },
   { label: "Unknown Items", href: "unknown", icon: ShieldQuestion },
