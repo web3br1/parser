@@ -9,7 +9,12 @@ from typing import Any, Literal
 
 from context_builder.services.context_bundle_service import build_context_bundle_from_rows
 
-ROOT = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from contract_artifacts import ROOT, display_path, read_text_normalized  # noqa: E402
+
 DEFAULT_OUTPUT_DIR = ROOT / "examples" / "context_bundle"
 GENERATED_AT = "2026-05-24T12:00:00Z"
 
@@ -73,23 +78,23 @@ def write_or_check_fixture(
     if check:
         if not output_path.exists():
             print(
-                f"Missing fixture: {_display_path(output_path)}",
+                f"Missing fixture: {display_path(output_path)}",
                 file=sys.stderr,
             )
             return False
-        current = _normalize_newlines(output_path.read_text(encoding="utf-8"))
+        current = read_text_normalized(output_path)
         if current != expected:
             print(
-                f"Fixture drift detected: {_display_path(output_path)}",
+                f"Fixture drift detected: {display_path(output_path)}",
                 file=sys.stderr,
             )
             return False
-        print(f"Fixture is current: {_display_path(output_path)}")
+        print(f"Fixture is current: {display_path(output_path)}")
         return True
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path.write_text(expected, encoding="utf-8")
-    print(f"Wrote fixture: {_display_path(output_path)}")
+    print(f"Wrote fixture: {display_path(output_path)}")
     return True
 
 
@@ -124,17 +129,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             check=args.check,
         ) and ok
     return 0 if ok else 1
-
-
-def _display_path(path: Path) -> str:
-    try:
-        return path.resolve().relative_to(ROOT.resolve()).as_posix()
-    except ValueError:
-        return path.name
-
-
-def _normalize_newlines(value: str) -> str:
-    return value.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _sources() -> list[dict[str, Any]]:

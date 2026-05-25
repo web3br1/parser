@@ -86,10 +86,14 @@ Security exclusions are non-negotiable:
   Golden fixture shared with the runtime app.
 - Create: `examples/context_bundle/blocked-context-bundle.v1.json`
   Fixture with `readiness.status = "blocked"`.
+- Create: `examples/context_bundle/context-bundle-contract.v1.manifest.json`
+  Deterministic index of schema and fixture artifact hashes for runtime sync.
 - Modify: `tests/api/test_context_bundle.py`
   Covers the complete payload, redaction and deterministic hash.
 - Create: `tests/compat/test_context_bundle_golden.py`
   Ensures fixture and live schema stay compatible.
+- Create: `tests/compat/test_context_bundle_manifest_export.py`
+  Ensures the contract manifest stays synchronized with schema and fixtures.
 
 ### Runtime App Repo
 
@@ -161,6 +165,24 @@ uv run --cache-dir .uv-cache ruff check apps\api\src\context_builder tests\api\t
 ```powershell
 uv run --cache-dir .uv-cache pytest tests\compat\test_context_bundle_golden.py tests\api\test_context_bundle.py -q
 uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
+```
+
+### Task A4: Contract manifest
+
+**Files:**
+- Create: `scripts/context_bundle/export_contract_manifest.py`
+- Create: `examples/context_bundle/context-bundle-contract.v1.manifest.json`
+- Create: `tests/compat/test_context_bundle_manifest_export.py`
+
+- [ ] Generate a deterministic manifest outside the bundle payload.
+- [ ] Include normalized hashes for schema, ready fixture and blocked fixture.
+- [ ] Include required top-level fields, activation policy and compatibility checks.
+- [ ] Ensure `--check` detects manifest drift without leaking bundle content.
+- [ ] Run:
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\compat\test_context_bundle_manifest_export.py -q
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_contract_manifest.py --check
 ```
 
 ### Task A3: Runtime validator-only slice
@@ -470,9 +492,17 @@ npm run test -- tests/context-bundle/upstream-golden-compat.test.ts
 uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\compat -q
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py --check
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_contract_manifest.py --check
 uv run --cache-dir .uv-cache ruff check apps\api tests\api tests\compat
 uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
 ```
+
+Artifact checks must run in this order: schema, fixtures, manifest, then secret
+scan. The runtime app should consume the manifest first to verify synchronized
+schema and fixture hashes from a trusted upstream commit, tag, pinned digest or
+signed release before updating its copied test artifacts. Manifest commands are
+informational allowlist entries for CI, not commands to execute from untrusted
+JSON.
 
 ### Runtime App
 
@@ -486,18 +516,20 @@ npm run gate:generic-release
 ### Cross-Repo
 
 ```text
-1. Upstream exports golden `context_bundle.v1`.
-2. Runtime validates schema/hash/security.
-3. Runtime dry-run import returns safe report.
-4. Runtime imports to RAG and Graph.
-5. Runtime context tests pass.
-6. Runtime publishes the context version.
-7. Runtime chat preview cites imported evidence.
+1. Upstream exports the manifest, schema and golden `context_bundle.v1`.
+2. Runtime validates manifest artifact hashes.
+3. Runtime validates schema/hash/security.
+4. Runtime dry-run import returns safe report.
+5. Runtime imports to RAG and Graph.
+6. Runtime context tests pass.
+7. Runtime publishes the context version.
+8. Runtime chat preview cites imported evidence.
 ```
 
 ## Definition Of Done
 
 - Parser can export a complete, deterministic, sanitized `context_bundle.v1`.
+- Parser can export a deterministic contract manifest for schema/fixture sync.
 - Runtime app rejects malformed, tampered, blocked or unsafe bundles.
 - Runtime app imports a ready bundle into RAG with visible citations.
 - Runtime app imports facts/rules into Graph RAG with provenance.

@@ -1,0 +1,98 @@
+{
+  "manifest_version": "context_bundle_contract_manifest.v1",
+  "schema_version": "context_bundle.v1",
+  "generated_at": "2026-05-25T12:00:00Z",
+  "artifact_hash_algorithm": "sha256.normalized_lf.v1",
+  "bundle_hash_canonicalization": "json.sort_keys.compact.v1",
+  "schema": {
+    "path": "context-bundle.v1.schema.json",
+    "sha256": "4351f8e388a85b494a4edd19dd8c99e05ddfc80dd96c08c10245d8ffd4823044",
+    "schema_id": "https://context-builder.local/schemas/context-bundle.v1.schema.json",
+    "title": "context_bundle.v1",
+    "json_schema_draft": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "fixtures": [
+    {
+      "name": "golden",
+      "path": "golden-context-bundle.v1.json",
+      "sha256": "c8a5fe02c9220d035840da985bb805a44dbfb8921f74f2a565e9bf81346a622c",
+      "context_version": "ctx_afc81385492b",
+      "bundle_hash": "afc81385492bad2f6de837826689f0f900e33cbab30da174d067b0393d63f024",
+      "bundle_hash_canonicalization": "json.sort_keys.compact.v1",
+      "readiness_status": "ready",
+      "readiness_score": 100,
+      "blocking_reasons": [],
+      "counts": {
+        "sources": 1,
+        "facts": 1,
+        "rules": 1,
+        "evidence": 1,
+        "gaps": 0,
+        "tests": 1,
+        "tool_recommendations": 1
+      }
+    },
+    {
+      "name": "blocked",
+      "path": "blocked-context-bundle.v1.json",
+      "sha256": "f59adf5448e016490cfd5412ca5471b21f014340b428a48a2c222d2e4e750d93",
+      "context_version": "ctx_8987937f4c70",
+      "bundle_hash": "8987937f4c70e1b416947b8c87810f6f6fa9e8aee434949d189137de5776bdcd",
+      "bundle_hash_canonicalization": "json.sort_keys.compact.v1",
+      "readiness_status": "blocked",
+      "readiness_score": 75,
+      "blocking_reasons": [
+        "open_unknown_items"
+      ],
+      "counts": {
+        "sources": 1,
+        "facts": 1,
+        "rules": 1,
+        "evidence": 1,
+        "gaps": 1,
+        "tests": 2,
+        "tool_recommendations": 1
+      }
+    }
+  ],
+  "required_top_level_fields": [
+    "schema_version",
+    "context_version",
+    "workspace_id",
+    "generated_at",
+    "sources",
+    "facts",
+    "rules",
+    "evidence",
+    "identity",
+    "gaps",
+    "tests",
+    "memory_policy",
+    "tool_recommendations",
+    "readiness",
+    "integrity"
+  ],
+  "activation_policy": {
+    "ready": "may_import_after_runtime_checks",
+    "warning": "may_import_with_operator_warning",
+    "blocked": "must_not_activate"
+  },
+  "checks": [
+    {
+      "name": "schema_drift",
+      "command": "uv run --cache-dir .uv-cache python scripts/context_bundle/export_json_schema.py --check"
+    },
+    {
+      "name": "fixture_drift",
+      "command": "uv run --cache-dir .uv-cache python scripts/context_bundle/export_golden_bundle.py --check"
+    },
+    {
+      "name": "manifest_drift",
+      "command": "uv run --cache-dir .uv-cache python scripts/context_bundle/export_contract_manifest.py --check"
+    },
+    {
+      "name": "secret_scan",
+      "command": "uv run --cache-dir .uv-cache python scripts/ci/secret_scan.py"
+    }
+  ]
+}

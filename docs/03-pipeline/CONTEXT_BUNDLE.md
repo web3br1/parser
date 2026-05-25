@@ -177,12 +177,15 @@ The canonical fixtures live in:
 - `examples/context_bundle/context-bundle.v1.schema.json`
 - `examples/context_bundle/golden-context-bundle.v1.json`
 - `examples/context_bundle/blocked-context-bundle.v1.json`
+- `examples/context_bundle/context-bundle-contract.v1.manifest.json`
 
 They are generated and checked by:
 
 ```powershell
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py --check
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_contract_manifest.py --check
+uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
 ```
 
 The golden fixture is a ready bundle that should pass importer validation and
@@ -190,8 +193,19 @@ can be used for runtime handoff tests. The blocked fixture contains an open gap
 and `readiness.status = "blocked"`, so a consumer may preview it but must not
 activate it.
 
+The contract manifest is an index of the schema and fixture artifacts. It is
+outside the bundle payload and is not included in `integrity.bundle_hash`. It
+records normalized artifact hashes, required top-level fields, activation
+policy and the compatibility commands a runtime should mirror. The manifest
+proves artifact consistency only when it comes from a trusted commit, tag,
+pinned digest or signed release; it is not a standalone root of trust.
+
+Manifest `checks.command` values are documentation for allowlisted CI jobs. A
+consumer must not execute arbitrary commands from a received manifest.
+
 Consumer projects should validate at least:
 
+- manifest hashes before copying schema or fixture artifacts;
 - schema version and strict envelope fields;
 - `integrity.bundle_hash` from the public payload;
 - `context_version` prefix from the hash;
@@ -209,8 +223,10 @@ rules, deleted source content, or raw unknown queue content.
 ## Focused Gate
 
 ```powershell
-uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\compat\test_context_bundle_golden.py tests\api\test_knowledge.py tests\integrity -q
+uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\compat\test_context_bundle_golden.py tests\compat\test_context_bundle_manifest_export.py tests\api\test_knowledge.py tests\integrity -q
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py --check
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_contract_manifest.py --check
 uv run --cache-dir .uv-cache ruff check apps\api tests\api tests\compat
+uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
 ```

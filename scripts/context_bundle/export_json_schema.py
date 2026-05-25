@@ -9,7 +9,12 @@ from typing import Any
 
 from context_builder.schemas.context_bundle import ContextBundleResponse
 
-ROOT = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from contract_artifacts import ROOT, display_path, read_text_normalized  # noqa: E402
+
 DEFAULT_SCHEMA_PATH = ROOT / "examples" / "context_bundle" / "context-bundle.v1.schema.json"
 JSON_SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 SCHEMA_ID = "https://context-builder.local/schemas/context-bundle.v1.schema.json"
@@ -40,18 +45,18 @@ def write_or_check_schema(*, output_path: Path, check: bool) -> bool:
 
     if check:
         if not output_path.exists():
-            print(f"Missing schema: {_display_path(output_path)}", file=sys.stderr)
+            print(f"Missing schema: {display_path(output_path)}", file=sys.stderr)
             return False
-        current = _normalize_newlines(output_path.read_text(encoding="utf-8"))
+        current = read_text_normalized(output_path)
         if current != expected:
-            print(f"Schema drift detected: {_display_path(output_path)}", file=sys.stderr)
+            print(f"Schema drift detected: {display_path(output_path)}", file=sys.stderr)
             return False
-        print(f"Schema is current: {_display_path(output_path)}")
+        print(f"Schema is current: {display_path(output_path)}")
         return True
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(expected, encoding="utf-8")
-    print(f"Wrote schema: {_display_path(output_path)}")
+    print(f"Wrote schema: {display_path(output_path)}")
     return True
 
 
@@ -73,17 +78,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     return 0 if write_or_check_schema(output_path=args.output_path, check=args.check) else 1
-
-
-def _display_path(path: Path) -> str:
-    try:
-        return path.resolve().relative_to(ROOT.resolve()).as_posix()
-    except ValueError:
-        return path.name
-
-
-def _normalize_newlines(value: str) -> str:
-    return value.replace("\r\n", "\n").replace("\r", "\n")
 
 
 if __name__ == "__main__":
