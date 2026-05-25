@@ -4,8 +4,8 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "typecheck": "corepack pnpm --filter @context-builder/web typecheck",
-    "typecheck:python": "uv run --cache-dir .uv-cache mypy --ignore-missing-imports -p normalizers -p parsers -p schema_registry -p security -p observability -p model_gateway -p domain",
-    "typecheck:python:strict-full": "uv run --cache-dir .uv-cache mypy --ignore-missing-imports -p normalizers -p parsers -p schema_registry -p model_gateway -p domain -p security -p observability -p context_builder -p worker_ingest -p worker_classification -p worker_extraction -p worker_review -p worker_sync"
+    "typecheck:python": "uv run --cache-dir .uv-cache mypy --ignore-missing-imports -p normalizers -p parsers -p schema_registry -p security -p observability -p source_pack -p model_gateway -p domain",
+    "typecheck:python:strict-full": "uv run --cache-dir .uv-cache mypy --ignore-missing-imports -p normalizers -p parsers -p schema_registry -p model_gateway -p domain -p security -p observability -p source_pack -p context_builder -p worker_ingest -p worker_classification -p worker_extraction -p worker_review -p worker_sync"
   },
   "pnpm": {
     "overrides": {

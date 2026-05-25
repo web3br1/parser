@@ -17,6 +17,7 @@ members = [
     "context-builder-parsers",
     "context-builder-schema-registry",
     "context-builder-security",
+    "context-builder-source-pack",
     "worker-classification",
     "worker-extraction",
     "worker-ingest",
@@ -459,6 +460,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "python-magic", specifier = ">=0.4" }]
+
+[[package]]
+name = "context-builder-source-pack"
+version = "0.1.0"
+source = { editable = "packages/source_pack" }
+dependencies = [
+    { name = "context-builder-api" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "context-builder-api", editable = "apps/api" }]
 
 [[package]]
 name = "cryptography"

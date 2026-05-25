@@ -17,6 +17,7 @@ _src_paths = [
     _root / "packages" / "domain" / "src",
     _root / "packages" / "security" / "src",
     _root / "packages" / "observability" / "src",
+    _root / "packages" / "source_pack" / "src",
 ]
 for p in _src_paths:
     s = str(p)
