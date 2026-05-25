@@ -51,6 +51,13 @@ Validacao:
 uv run pytest tests\api\test_query.py tests\api\test_knowledge.py tests\integrity -q
 ```
 
+Estado verificado em 2026-05-25: resolvido nos gates locais. Evidencia:
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\api\test_query.py tests\api\test_knowledge.py tests\integrity -q
+# 72 passed
+```
+
 ### 2. Contrato de estado da source esta dividido
 
 Problema: a migration adiciona `source_status = 'extracted'`, mas o enum de
@@ -78,6 +85,15 @@ uv run pytest tests\integrity workers\classification\tests workers\extraction\te
 npm run typecheck:python:strict-full
 ```
 
+Estado verificado em 2026-05-25: resolvido nos gates locais. Evidencia:
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\integrity workers\classification\tests workers\extraction\tests workers\ingest\tests -q
+# 109 passed
+npm run typecheck:python:strict-full
+# Success: no issues found in 105 source files
+```
+
 ### 3. Query e publicacao discordam sobre contradicoes
 
 Problema: publicacao bloqueia contradicoes com status `open` e `needs_review`,
@@ -96,6 +112,13 @@ Validacao:
 
 ```powershell
 uv run pytest tests\api\test_query.py -q
+```
+
+Estado verificado em 2026-05-25: resolvido nos gates locais. Evidencia:
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\api\test_query.py -q
+# 31 passed
 ```
 
 ### 4. Query ignora unknown queue para dados pendentes
@@ -117,6 +140,13 @@ Validacao:
 
 ```powershell
 uv run pytest tests\api\test_query.py -q
+```
+
+Estado verificado em 2026-05-25: resolvido nos gates locais. Evidencia:
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\api\test_query.py -q
+# 31 passed
 ```
 
 ### 5. Gate Python de CI esta vermelho
@@ -149,6 +179,15 @@ Estado aplicado em 2026-05-16: o gate obrigatorio valida pacotes reais com
 `npm run typecheck:python` e tambem cobre API/workers com
 `npm run typecheck:python:strict-full`. Ambos passam e devem permanecer como
 gates de release.
+
+Estado verificado em 2026-05-25:
+
+```powershell
+npm run typecheck:python
+# Success: no issues found in 36 source files
+npm run typecheck:python:strict-full
+# Success: no issues found in 105 source files
+```
 
 ## Riscos P2 que exigem mitigacao antes de producao geral
 
@@ -191,9 +230,24 @@ export/delete com dry-run, confirmacao, auditoria e relatorio final.
 
 Validacao: testes para request, dry-run, confirmacao, execucao e auditoria.
 
+### 11. Anthropic gateway esta declarado, mas nao implementado
+
+Problema: `packages/model_gateway/src/model_gateway/anthropic_client.py` ainda
+lança `NotImplementedError` em `classify` e `extract`.
+
+Mitigacao atual: o piloto usa Ollama como provider padrao. Nao configurar
+`MODEL_PROVIDER=anthropic` em piloto/release enquanto o gateway nao for
+implementado e coberto por testes.
+
+Correcao: implementar o gateway Anthropic ou remover/desabilitar a opcao
+explicitamente da selecao de providers suportados.
+
+Validacao: testes de `model_gateway` cobrindo classify/extract Anthropic com
+cliente mockado e fallback seguro de erro.
+
 ## Riscos P3 antes de escala
 
-### 11. Listagens paginam em memoria e review faz N+1
+### 12. Listagens paginam em memoria e review faz N+1
 
 Correcao: mover paginacao/ordenacao para o banco e carregar contadores/agregados
 em queries batched.
@@ -211,7 +265,8 @@ Validacao: testes de paginacao deterministica e smoke com volume sintetico.
 7. Decidir e endurecer RLS para acesso direto ou API-only.
 8. Separar API de worker runtime.
 9. Tornar fluxos LGPD executaveis ou claramente request-only.
-10. Otimizar paginacao e N+1 antes de escala.
+10. Implementar ou desabilitar explicitamente o gateway Anthropic.
+11. Otimizar paginacao e N+1 antes de escala.
 
 ## Criterio minimo para liberar producao
 

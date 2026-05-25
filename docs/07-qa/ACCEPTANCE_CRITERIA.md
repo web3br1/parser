@@ -2,6 +2,36 @@
 
 O MVP só está completo quando todos os itens abaixo passam end-to-end.
 
+## Estado de verificacao
+
+Os checkboxes abaixo representam aceite end-to-end do MVP. Eles devem permanecer
+abertos ate haver evidencia de ambiente real/piloto, nao apenas testes locais.
+
+Evidencia local verificada em 2026-05-25:
+
+| Area | Evidencia | Resultado |
+|---|---|---|
+| Suite local completa | `uv run --cache-dir .uv-cache pytest -q` | 515 passed |
+| Lint | `uv run --cache-dir .uv-cache ruff check .` | passed |
+| Typecheck Python parcial | `npm run typecheck:python` | 36 source files, no issues |
+| Typecheck Python strict-full | `npm run typecheck:python:strict-full` | 105 source files, no issues |
+| Typecheck frontend | `corepack pnpm --filter @context-builder/web typecheck` | passed |
+| Build frontend | `corepack pnpm --filter @context-builder/web build` | passed |
+| Context Bundle fixtures | export schema/golden/manifest `--check` | current |
+| Secret scan | `uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py` | exit 0 |
+| P1 1, publicacao/source publicada | `uv run --cache-dir .uv-cache pytest tests\api\test_query.py tests\api\test_knowledge.py tests\integrity -q` | 72 passed |
+| P1 2, source state machine | `uv run --cache-dir .uv-cache pytest tests\integrity workers\classification\tests workers\extraction\tests workers\ingest\tests -q` | 109 passed |
+| P1 3 e 4, query contradictions/unknowns | `uv run --cache-dir .uv-cache pytest tests\api\test_query.py -q` | 31 passed |
+
+Evidencia ainda pendente para aceite do MVP:
+
+- smoke real Supabase/Docker pelo orquestrador;
+- smoke headless do console contra runtime real;
+- gate semantico com predictions reais;
+- metricas mecanicas de piloto em ambiente atual;
+- auditorias de dependencia (`pnpm audit --prod`, `pip-audit` ou equivalente);
+- aceitacao formal de riscos P2 restantes em `PRODUCTION_BLOCKERS_PATCH_REVIEW.md`.
+
 ---
 
 ## Ingestão e quality gate
