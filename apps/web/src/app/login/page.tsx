@@ -33,7 +33,7 @@ export default function LoginPage() {
             <ShieldCheck className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold">Context Builder</h1>
+            <h1 className="text-xl font-semibold">Parser</h1>
             <p className="text-sm text-slate-600">Internal operator console</p>
           </div>
         </div>

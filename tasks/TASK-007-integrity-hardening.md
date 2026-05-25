@@ -2,7 +2,9 @@
 
 > Historical task. Some runtime notes below predate TASK-013/TASK-015.
 > Docker is now the reproducible local runtime, not a deployment contract.
-> Canonical runtime docs live in `docs/operations/`.
+> Canonical runtime docs live in `docs/operations/`. References below to
+> `scripts/dev/` are historical and were superseded by Docker/runtime-external
+> cleanup.
 
 **Projeto:** Context Builder Empresarial  
 **Status:** `ready`  

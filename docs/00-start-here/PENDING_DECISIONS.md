@@ -1,14 +1,16 @@
 # Decisoes Pendentes
 
-Todas as decisoes pendentes foram fechadas em 2026-05-12.
+Todas as decisoes pendentes foram fechadas em 2026-05-12. Este arquivo fica
+apenas como ponte para evitar links quebrados.
 
-O registro historico das decisoes fechadas esta em:
+A documentacao operacional canonica esta em:
 
 ```text
-docs/07-operations/DECISOES_PENDENTES.md
+docs/operations/
 ```
 
-Os runbooks canonicos de runtime e smoke estao em `docs/operations/`.
+`docs/07-operations/` foi removido na limpeza SDD porque duplicava runbooks e
+mantinha orientacoes antigas de stack local via PowerShell.
 
 Resumo:
 
@@ -26,5 +28,3 @@ OLLAMA_BASE_URL=http://localhost:11434
 CLASSIFICATION_MODEL=gemma4:31b
 EXTRACTION_MODEL=hf.co/hesamation/Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled-GGUF:Q4_K_M
 ```
-
-Este arquivo fica apenas como ponte para evitar links quebrados.

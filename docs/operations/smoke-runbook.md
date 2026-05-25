@@ -1,12 +1,15 @@
 # Smoke Runbook - Supabase real
 
-Runbook operacional para validar o primeiro ambiente Supabase real do Context Builder.
+Runbook operacional para validar um ambiente Supabase real do Context Compiler.
+Este projeto compila contexto validado e exporta `context_bundle.v1`; o chatbot
+final vive em outro projeto.
 
 Escopo canonico:
 
-- migrations `000` a `042` aplicadas no projeto Supabase dev
+- migrations `000` a `045` aplicadas no projeto Supabase dev
 - bucket privado `context-builder-private`
-- API, Redis e workers iniciados fora do orquestrador de smoke
+- API, Redis e workers iniciados por Docker ou outro runtime externo ao
+  orquestrador de smoke
 - smoke minimo primeiro
 - smoke completo apenas depois do minimo passar
 - scripts oficiais em `scripts/smoke/*.py`
@@ -17,7 +20,8 @@ Nao coloque secrets neste documento, em logs ou em outputs compartilhados.
 
 - Supabase CLI autenticado.
 - Projeto Supabase dev linkado.
-- Redis acessivel via `REDIS_URL` (local, WSL, Memurai ou servico gerenciado).
+- Redis acessivel via `REDIS_URL` (Docker, local, WSL, Memurai ou servico
+  gerenciado).
 - `uv` instalado e disponivel no PATH.
 - Supabase CLI acessivel via `npx supabase`.
 - Python 3.12 com dependencias do projeto instaladas.
@@ -80,6 +84,9 @@ Migrations esperadas:
 040_lock_down_storage_read_policy.sql
 041_lock_down_client_writes.sql
 042_storage_file_size_100mb.sql
+043_lock_down_storage_client_writes.sql
+044_restrict_publish_to_managers.sql
+045_backfill_source_state.sql
 ```
 
 Validacao rapida no SQL Editor:
@@ -115,9 +122,16 @@ where id = 'context-builder-private';
 
 ## 3. Subir runtime local
 
-Suba Redis, API e workers por um processo externo ao orquestrador de smoke. O
+Use Docker como runtime reproduzivel preferencial:
+
+```bash
+docker compose up --build
+```
+
+Tambem e valido iniciar Redis, API e workers por outro supervisor externo. O
 script `scripts/smoke/run_real_smoke.py` valida a stack ja iniciada; ele nao
-inicia, para, nem inspeciona processos locais.
+inicia, para, nem inspeciona processos locais. Para detalhes, veja
+`docs/operations/DOCKER_LOCAL_RUNTIME.md` e `docs/operations/LOCAL_RUNTIME.md`.
 
 ## 4. Validar runtime local
 
@@ -137,7 +151,7 @@ Servicos esperados:
 
 | Servico | Porta | Funcao |
 | --- | --- | --- |
-| redis externo/local | conforme `REDIS_URL` | broker Celery |
+| redis externo/Docker/local | conforme `REDIS_URL` | broker Celery |
 | api | 8000 | FastAPI |
 | worker-ingest | - | parse, quality gate e chunks |
 | worker-classification | - | classificacao de chunks |
@@ -155,7 +169,7 @@ python scripts/smoke/check_supabase_contracts.py
 
 O script deve validar, no minimo:
 
-- migrations `000-042`
+- migrations `000-045`
 - tabelas principais
 - RPCs de ingest, classification e extraction
 - bucket `context-builder-private`
@@ -228,8 +242,8 @@ published_facts contem o fato publicado
 
 Confirme que `.env` existe, nao contem valores vazios para Supabase, que
 `REDIS_URL` aponta para um Redis acessivel e que API/workers foram iniciados
-pelo processo externo escolhido. O orquestrador de smoke nao inicia nem para
-servicos locais.
+pelo Docker ou processo externo escolhido. O orquestrador de smoke nao inicia
+nem para servicos locais.
 
 ### Pipeline fica parado
 
@@ -292,10 +306,10 @@ Use `--mode orphans` apenas para objetos antigos sem referencia em `sources`.
 
 ## Checklist final
 
-- [ ] Migrations `000-042` aplicadas sem erro.
+- [ ] Migrations `000-045` aplicadas sem erro.
 - [ ] Bucket `context-builder-private` existe e e privado.
 - [ ] Redis esta acessivel via `REDIS_URL`.
-- [ ] API, Redis e workers foram iniciados fora do orquestrador de smoke.
+- [ ] API, Redis e workers foram iniciados por Docker ou runtime externo ao orquestrador de smoke.
 - [ ] `GET /health` retorna 200.
 - [ ] `scripts/smoke/check_supabase_contracts.py` passa.
 - [ ] `scripts/smoke/run_real_smoke.py --target local` passa no modo minimo.

@@ -1,5 +1,9 @@
 # Real Smoke Orchestrator Design
 
+> Historical design note. TASK-015 superseded local stack ownership: the
+> current orchestrator validates an already-running API/workers runtime and does
+> not call `scripts/dev` or accept stack-start flags.
+
 ## Goal
 
 Replace the manual chain of readiness, contracts, stack checks, health checks, and smoke commands with one orchestrator that can run the full real-test flow locally first and later against a cloud deployment.

@@ -4,7 +4,9 @@
 > `scripts/smoke/run_real_smoke.py --target local`; `supabase_smoke.py` is a
 > subphase/debug script. Runtime lifecycle is external and documented in
 > `docs/operations/LOCAL_RUNTIME.md` and
-> `docs/operations/DOCKER_LOCAL_RUNTIME.md`.
+> `docs/operations/DOCKER_LOCAL_RUNTIME.md`. References below to
+> `docs/07-operations/` and `scripts/dev/` are historical and were superseded by
+> TASK-013/TASK-015/TASK-016.
 
 **Projeto:** Context Builder Empresarial  
 **Status:** `ready`  

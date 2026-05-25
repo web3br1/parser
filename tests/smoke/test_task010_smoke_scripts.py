@@ -315,13 +315,13 @@ def test_required_task010_scripts_exist() -> None:
     assert (ROOT / "scripts" / "smoke" / "run_real_smoke.py").exists()
     assert (ROOT / "scripts" / "smoke" / "check_supabase_contracts.py").exists()
     assert (ROOT / "scripts" / "smoke" / "supabase_smoke.py").exists()
-    assert (ROOT / "scripts" / "dev" / "check_local_stack.ps1").exists()
-    assert (ROOT / "scripts" / "dev" / "start_local_stack.ps1").exists()
-    assert (ROOT / "scripts" / "dev" / "stop_local_stack.ps1").exists()
     assert (ROOT / "scripts" / "smoke" / "diagnose_source.py").exists()
     assert (ROOT / "scripts" / "smoke" / "cleanup_smoke.py").exists()
     assert (ROOT / "scripts" / "ops" / "storage_gc.py").exists()
-    assert (ROOT / "scripts" / "dev" / "setup_redis_windows.ps1").exists()
+    assert not (ROOT / "scripts" / "dev" / "check_local_stack.ps1").exists()
+    assert not (ROOT / "scripts" / "dev" / "start_local_stack.ps1").exists()
+    assert not (ROOT / "scripts" / "dev" / "stop_local_stack.ps1").exists()
+    assert not (ROOT / "scripts" / "dev" / "setup_redis_windows.ps1").exists()
 
 
 def test_real_smoke_orchestrator_does_not_reference_dev_runtime_scripts() -> None:
@@ -337,116 +337,6 @@ def test_real_smoke_orchestrator_does_not_reference_dev_runtime_scripts() -> Non
     assert "start-stack" not in script
     assert "stack-check" not in script
     assert "scripts/dev/" not in script.replace("\\", "/")
-
-
-def test_setup_redis_windows_uses_portable_redis_without_service_install() -> None:
-    script = (ROOT / "scripts" / "dev" / "setup_redis_windows.ps1").read_text(
-        encoding="utf-8"
-    )
-
-    assert "tporadowski/redis" in script
-    assert "REDIS_VERSION" in script
-    assert "Invoke-WebRequest" in script
-    assert "Expand-Archive" in script
-    assert "redis-server.exe" in script
-    assert ".run\\redis" in script
-    assert "function Normalize-ProcessPathEnv" in script
-    assert script.index("Normalize-ProcessPathEnv") < script.index("$Process = Start-Process")
-    assert "REDIS_URL=redis://localhost:$Port/0" in script
-    assert "New-Service" not in script
-    assert "sc.exe" not in script
-
-
-def test_start_local_stack_defaults_to_real_workers() -> None:
-    script = (ROOT / "scripts" / "dev" / "start_local_stack.ps1").read_text(
-        encoding="utf-8"
-    )
-    assert "[int] $Port = 8000" in script
-    assert "[switch] $Reload" in script
-    assert "[switch] $Eager" in script
-    assert "[switch] $FilesystemBroker" in script
-    assert 'Set-ProcessEnv "CELERY_TASK_ALWAYS_EAGER" "0"' in script
-    assert "CELERY_BROKER_URL" in script
-    assert "filesystem://" in script
-    assert "function Normalize-ProcessPathEnv" in script
-    assert "UV_CACHE_DIR" in script
-    assert 'Set-ProcessEnv "API_BASE_URL" "http://localhost:$Port"' in script
-    assert '"--port", "$Port"' in script
-    assert '"-Q", "ingest"' in script
-    assert '"-Q", "classification"' in script
-    assert '"-Q", "extraction"' in script
-    assert '"--hostname", "parser-worker-ingest@%h"' in script
-    assert '"--hostname", "parser-worker-classification@%h"' in script
-    assert '"--hostname", "parser-worker-extraction@%h"' in script
-    assert 'if ($Reload) {' in script
-    assert '"--reload"' in script
-    assert '"--reload"' not in script.split('if ($Reload) {', 1)[0]
-
-
-def test_start_local_stack_cleans_stale_managed_processes_before_starting() -> None:
-    script = (ROOT / "scripts" / "dev" / "start_local_stack.ps1").read_text(
-        encoding="utf-8"
-    )
-
-    assert "function Stop-StaleManagedProcess" in script
-    assert "Get-CimInstance Win32_Process" in script
-    assert "CommandLine" in script
-    assert "worker_ingest.celery_app:app" in script
-    assert "worker_classification.celery_app:app" in script
-    assert "worker_extraction.celery_app:app" in script
-    assert "Stop-StaleManagedProcess $Name $Arguments" in script
-    assert script.index("Stop-StaleManagedProcess $Name $Arguments") < script.index(
-        "$Process = Start-Process"
-    )
-
-
-def test_stop_local_stack_cleans_pidless_managed_processes() -> None:
-    script = (ROOT / "scripts" / "dev" / "stop_local_stack.ps1").read_text(
-        encoding="utf-8"
-    )
-
-    assert "function Stop-ManagedProcessByCommand" in script
-    assert "Get-CimInstance Win32_Process" in script
-    assert "worker_ingest.celery_app:app" in script
-    assert "worker_classification.celery_app:app" in script
-    assert "worker_extraction.celery_app:app" in script
-    assert "context_builder.main:app" in script
-
-
-def test_dev_scripts_resolve_uv_from_env_or_common_windows_path() -> None:
-    for path in [
-        ROOT / "scripts" / "dev" / "check_local_stack.ps1",
-        ROOT / "scripts" / "dev" / "start_local_stack.ps1",
-    ]:
-        script = path.read_text(encoding="utf-8")
-        assert "function Resolve-UvPath" in script
-        assert "UV_BIN" in script
-        assert "miniforge3\\Scripts\\uv.exe" in script
-
-
-def test_check_local_stack_treats_cim_access_denied_as_non_blocking() -> None:
-    script = (ROOT / "scripts" / "dev" / "check_local_stack.ps1").read_text(
-        encoding="utf-8"
-    )
-
-    assert "function Get-ManagedProcesses" in script
-    assert "Get-CimInstance Win32_Process" in script
-    assert "Write-Warning" in script
-    assert "return $null" in script
-    assert "$Count -eq $null" in script
-
-
-def test_check_local_stack_detects_duplicate_workers() -> None:
-    script = (ROOT / "scripts" / "dev" / "check_local_stack.ps1").read_text(
-        encoding="utf-8"
-    )
-
-    assert "function Count-ManagedProcesses" in script
-    assert "worker_ingest.celery_app:app" in script
-    assert "worker_classification.celery_app:app" in script
-    assert "worker_extraction.celery_app:app" in script
-    assert 'Write-Check "duplicate $($Spec.Name)"' in script
-    assert "Duplicate worker processes detected" in script
 
 
 def test_docker_local_runtime_uses_root_compose_not_legacy_infra_layout() -> None:

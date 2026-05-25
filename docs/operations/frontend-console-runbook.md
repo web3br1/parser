@@ -1,4 +1,4 @@
-# FRONTEND_CONSOLE_RUNBOOK.md — Internal Web Console
+# Frontend Console Runbook
 
 ## Scope
 

@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
     if settings.app_env == "production" and "*" in settings.trusted_hosts:
         raise RuntimeError("TRUSTED_HOSTS must not include '*' in production")
     app = FastAPI(
-        title="Context Builder API",
+        title="Parser Context Compiler API",
         version="0.1.0",
         docs_url="/docs" if settings.app_env != "production" else None,
         redoc_url=None,

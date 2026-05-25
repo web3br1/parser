@@ -4,7 +4,7 @@
 > `context_bundle.v1`; the end-user chatbot lives in the external consumer
 > project. Use `CONTEXT_BUNDLE.md` as the integration contract.
 
-Este documento define o contrato completo do endpoint `/query` do Context Builder.
+Este documento define o contrato completo do endpoint `/query` do Context Compiler.
 A consulta nao e um chat livre. Ela e a ultima etapa do compilador de conhecimento:
 
 ```text

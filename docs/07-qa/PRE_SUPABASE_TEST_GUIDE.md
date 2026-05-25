@@ -222,10 +222,10 @@ Antes de iniciar Supabase real, todos devem estar verdadeiros:
 [ ] pytest packages/ workers/ tests/api/ tests/integrity passa
 [ ] ruff check . passa
 [ ] mypy packages/ apps/api/ workers/ passa
-[ ] .\scripts\dev\check_local_stack.ps1 passa
+[ ] Runtime local foi iniciado por Docker ou processo externo
 [ ] Redis esta acessivel via REDIS_URL
 [ ] .env.example tem todos os campos obrigatorios
-[ ] migrations 000-032 estao em ordem
+[ ] migrations 000-045 estao em ordem
 [ ] TASK-010 tem scripts de smoke planejados
 ```
 

@@ -27,6 +27,8 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 | Como rodar runtime local | `operations/LOCAL_RUNTIME.md` |
 | Como rodar Docker local | `operations/DOCKER_LOCAL_RUNTIME.md` |
 | Como rodar smoke/readiness real | `operations/smoke-runbook.md` |
+| Como validar o console interno | `operations/frontend-console-runbook.md` |
+| Quais modelos Ollama foram medidos | `operations/model-benchmarks.md` |
 | Quais dados existem no banco | `04-data/DATA_MODEL.md` |
 | Quais fact types existem | `04-data/SCHEMA_REGISTRY.md` |
 | Como validar seguranca multi-tenant | `05-security/SECURITY_RLS.md` |

@@ -488,7 +488,7 @@ def main() -> None:
     mode = "FULL" if FULL else "MINIMAL"
     report = SmokeReport(mode, API_BASE)
     print("=" * 60)
-    print(f"Context Builder Supabase Smoke [{mode}]")
+    print(f"Context Compiler Supabase Smoke [{mode}]")
     print(f"API: {API_BASE}")
     print(f"Bucket: {WORKSPACE_STORAGE_BUCKET}")
     print("=" * 60)

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Context Builder",
-  description: "Context Builder Empresarial"
+  title: "Parser",
+  description: "Context Compiler local"
 };
 
 export default function RootLayout({

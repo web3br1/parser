@@ -50,7 +50,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
           <div className="border-b border-slate-200 px-5 py-5">
             <Link href="/workspaces" className="text-sm font-semibold text-slate-950">
-              Context Builder
+              Parser
             </Link>
             <p className="mt-1 truncate text-xs text-slate-500">Workspace {workspaceId}</p>
           </div>
