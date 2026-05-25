@@ -22,6 +22,7 @@ from context_builder.schemas.source import (
     UploadResponse,
 )
 from context_builder.services.ingest_queue import create_and_enqueue_ingest_job
+from context_builder.services.source_pack_import_runs import create_import_run_from_preflight
 from context_builder.services.source_pack_preflight import inspect_source_pack_upload
 from context_builder.services.storage import delete_from_storage, upload_to_storage
 from supabase import Client
@@ -48,12 +49,23 @@ def _rows(data: Any) -> list[dict[str, Any]]:
 async def preflight_source_pack_upload(
     payload: SourcePackPreflightRequest,
     membership: dict[str, Any] = Depends(require_upload_permission),
+    db: Client = Depends(get_supabase_service_for_backend_only),
 ) -> SourcePackPreflightResponse:
     logger.info(
         "source_pack_preflight_requested",
         workspace_id=membership["workspace_id"],
     )
-    return inspect_source_pack_upload(Path(payload.source_dir))
+    response = inspect_source_pack_upload(Path(payload.source_dir))
+    if payload.persist:
+        run = create_import_run_from_preflight(
+            db,
+            workspace_id=membership["workspace_id"],
+            actor_user_id=membership["user"]["id"],
+            source_dir=payload.source_dir,
+            preflight=response,
+        )
+        response = response.model_copy(update={"import_run_id": run.id})
+    return response
 
 
 async def _read_upload_to_spooled_file(

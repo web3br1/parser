@@ -153,6 +153,8 @@ Evidencia ainda pendente para aceite do MVP:
 
 - [ ] Upload de pasta/zip com `00_source_manifest.md` e arquivos numerados e identificado como source pack antes de processar arquivo por arquivo
 - [ ] API de preflight retorna `compile_as_source_pack`, `normal_ingest` ou `reject` antes de iniciar ingestao/compilacao
+- [ ] Source pack preflight/compile lifecycle cria `source_pack_import_runs` com workspace, actor, source_pack_id/version, recommended_action, status, counts, missing/extra files e bundle hash quando aplicavel
+- [ ] Cada source pack import run registra `input_hash` deterministico para correlacionar preflight, compile e import sem depender apenas de path local
 - [ ] Source pack incompleto falha no preflight com lista de arquivos/roles faltantes
 - [ ] `compounding-pharmacy-gold` compila para `context_bundle.v1` sem edicao manual
 - [ ] Bundle compilado preserva evidence por arquivo/linha CSV e secao Markdown

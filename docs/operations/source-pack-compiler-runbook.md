@@ -85,5 +85,18 @@ Request:
 ```
 
 The endpoint returns `compile_as_source_pack`, `normal_ingest`, or `reject`.
-It is intentionally a preflight step only; persistence of import runs and
-folder/zip upload orchestration are later slices.
+
+To persist an auditable import run for the preflight, pass:
+
+```json
+{
+  "source_dir": "C:\\tmp\\context-builder-sources\\compounding-pharmacy-gold",
+  "persist": true
+}
+```
+
+The response includes `import_run_id`. The persisted row records workspace,
+actor, source pack id/version, file counts, missing/extra files, deterministic
+`input_hash`, status and recommended action.
+
+Folder/zip upload orchestration is a later slice.

@@ -55,6 +55,7 @@ Tipos antigos como `price_table`, `service_catalog`, `payment_policy`, `booking_
 | `processing_jobs` | `016` | Idempotência e execução assíncrona |
 | `token_usage_log` | `017` | Custo e tokens |
 | `audit_logs` | `018` | Auditoria operacional genérica |
+| `source_pack_import_runs` | `046` | Preflight/compile lifecycle de source packs, `input_hash`, readiness e bundle hashes |
 
 ## Views Publicadas
 

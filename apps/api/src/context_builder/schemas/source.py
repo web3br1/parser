@@ -30,6 +30,7 @@ class SourcePackPreflightRequest(BaseModel):
     model_config = ConfigDict(strict=True)
 
     source_dir: str
+    persist: bool = False
 
 
 class SourcePackPreflightResponse(BaseModel):
@@ -51,3 +52,4 @@ class SourcePackPreflightResponse(BaseModel):
     missing_files: list[str]
     extra_files: list[str]
     errors: list[str]
+    import_run_id: str | None = None
