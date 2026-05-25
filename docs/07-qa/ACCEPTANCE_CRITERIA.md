@@ -152,6 +152,7 @@ Evidencia ainda pendente para aceite do MVP:
 ## Source Pack Compiler
 
 - [ ] Upload de pasta/zip com `00_source_manifest.md` e arquivos numerados e identificado como source pack antes de processar arquivo por arquivo
+- [ ] API de preflight retorna `compile_as_source_pack`, `normal_ingest` ou `reject` antes de iniciar ingestao/compilacao
 - [ ] Source pack incompleto falha no preflight com lista de arquivos/roles faltantes
 - [ ] `compounding-pharmacy-gold` compila para `context_bundle.v1` sem edicao manual
 - [ ] Bundle compilado preserva evidence por arquivo/linha CSV e secao Markdown

@@ -41,7 +41,7 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 | Qual matriz de testes roda sem infraestrutura real | `07-qa/TEST_MATRIX_PRE_SUPABASE.md` |
 | Como simular E2E com mocks | `07-qa/MOCK_E2E_RUNBOOK.md` |
 | Quais gates rodam antes de tasks grandes | `07-qa/REGRESSION_GATES.md` |
-| Qual plano cobre Context Bundle e source packs | `../tasks/TASK-011-context-bundle-integration.md` ate `../tasks/TASK-017-source-pack-context-bundle-compiler.md` |
+| Qual plano cobre Context Bundle e source packs | `../tasks/TASK-011-context-bundle-integration.md` ate `../tasks/TASK-018-source-pack-preflight-api.md` |
 | O que nunca implementar | `08-ops/REJECTION_RULES.md` |
 | Quais migrations são executáveis | `../supabase/README.md` |
 | Onde fica o dataset adversarial | `../examples/adversarial/README.md` |

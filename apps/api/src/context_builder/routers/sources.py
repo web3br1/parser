@@ -15,8 +15,14 @@ from context_builder.dependencies import (
     require_workspace_member,
 )
 from context_builder.schemas.job import JobStatusResponse
-from context_builder.schemas.source import SourceResponse, UploadResponse
+from context_builder.schemas.source import (
+    SourcePackPreflightRequest,
+    SourcePackPreflightResponse,
+    SourceResponse,
+    UploadResponse,
+)
 from context_builder.services.ingest_queue import create_and_enqueue_ingest_job
+from context_builder.services.source_pack_preflight import inspect_source_pack_upload
 from context_builder.services.storage import delete_from_storage, upload_to_storage
 from supabase import Client
 
@@ -36,6 +42,18 @@ def _rows(data: Any) -> list[dict[str, Any]]:
     if isinstance(data, dict):
         return [data]
     return []
+
+
+@router.post("/source-pack/preflight", response_model=SourcePackPreflightResponse)
+async def preflight_source_pack_upload(
+    payload: SourcePackPreflightRequest,
+    membership: dict[str, Any] = Depends(require_upload_permission),
+) -> SourcePackPreflightResponse:
+    logger.info(
+        "source_pack_preflight_requested",
+        workspace_id=membership["workspace_id"],
+    )
+    return inspect_source_pack_upload(Path(payload.source_dir))
 
 
 async def _read_upload_to_spooled_file(

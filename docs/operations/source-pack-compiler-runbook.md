@@ -67,3 +67,23 @@ flow, folder or zip upload should first run source-pack preflight:
   missing files or invalid roles.
 
 This compiler is the backend primitive for that future upload UX.
+
+## API Preflight
+
+The API exposes the first product-facing preflight primitive:
+
+```http
+POST /workspaces/{workspace_id}/sources/source-pack/preflight
+```
+
+Request:
+
+```json
+{
+  "source_dir": "C:\\tmp\\context-builder-sources\\compounding-pharmacy-gold"
+}
+```
+
+The endpoint returns `compile_as_source_pack`, `normal_ingest`, or `reject`.
+It is intentionally a preflight step only; persistence of import runs and
+folder/zip upload orchestration are later slices.
