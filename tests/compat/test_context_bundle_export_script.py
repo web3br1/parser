@@ -81,3 +81,22 @@ def test_export_script_check_detects_fixture_drift(
 
     assert "Fixture drift detected: golden-context-bundle.v1.json" in captured.err
     assert "Limpeza de pele" not in captured.err
+
+
+def test_export_script_check_accepts_crlf_fixture(tmp_path: Path) -> None:
+    module = _load_script()
+    output_dir = tmp_path / "context_bundle"
+    assert module.main(["--variant", "golden", "--output-dir", str(output_dir)]) == 0
+
+    golden_path = output_dir / "golden-context-bundle.v1.json"
+    golden_path.write_bytes(
+        golden_path.read_text(encoding="utf-8").replace("\n", "\r\n").encode("utf-8")
+    )
+
+    assert module.main([
+        "--variant",
+        "golden",
+        "--output-dir",
+        str(output_dir),
+        "--check",
+    ]) == 0

@@ -468,6 +468,7 @@ npm run test -- tests/context-bundle/upstream-golden-compat.test.ts
 
 ```powershell
 uv run --cache-dir .uv-cache pytest tests\api\test_context_bundle.py tests\compat -q
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py --check
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
 uv run --cache-dir .uv-cache ruff check apps\api tests\api tests\compat
 uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py

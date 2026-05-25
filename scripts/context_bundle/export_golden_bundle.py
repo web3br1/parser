@@ -77,7 +77,7 @@ def write_or_check_fixture(
                 file=sys.stderr,
             )
             return False
-        current = output_path.read_text(encoding="utf-8")
+        current = _normalize_newlines(output_path.read_text(encoding="utf-8"))
         if current != expected:
             print(
                 f"Fixture drift detected: {_display_path(output_path)}",
@@ -131,6 +131,10 @@ def _display_path(path: Path) -> str:
         return path.resolve().relative_to(ROOT.resolve()).as_posix()
     except ValueError:
         return path.name
+
+
+def _normalize_newlines(value: str) -> str:
+    return value.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _sources() -> list[dict[str, Any]]:

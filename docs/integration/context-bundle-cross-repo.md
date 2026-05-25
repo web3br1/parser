@@ -25,10 +25,22 @@ Check that committed fixtures still match the production bundle service:
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
 ```
 
+Check that the committed JSON Schema still matches the Pydantic contract:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py --check
+```
+
 Regenerate both fixtures after an intentional contract change:
 
 ```powershell
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py
+```
+
+Regenerate the JSON Schema after an intentional contract change:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py
 ```
 
 Generate only the ready fixture into a temporary handoff directory:
@@ -39,6 +51,7 @@ uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.
 
 The canonical fixture files are:
 
+- `examples/context_bundle/context-bundle.v1.schema.json`
 - `examples/context_bundle/golden-context-bundle.v1.json`
 - `examples/context_bundle/blocked-context-bundle.v1.json`
 
@@ -62,6 +75,7 @@ Parser-side compatibility gate:
 
 ```powershell
 uv run --cache-dir .uv-cache pytest tests\compat -q
+uv run --cache-dir .uv-cache python scripts\context_bundle\export_json_schema.py --check
 uv run --cache-dir .uv-cache python scripts\context_bundle\export_golden_bundle.py --check
 uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
 ```
@@ -81,8 +95,9 @@ repo and validate it without writing to RAG, graph or active bot config.
 Contract changes are allowed only when they preserve this sequence:
 
 1. Update the Pydantic contract and service projection.
-2. Regenerate fixtures with `export_golden_bundle.py`.
-3. Run Parser compatibility tests and secret scan.
-4. Update the runtime validator/hash tests with the new fixture.
-5. Keep both repos accepting the same `context_bundle.v1` artifact before
+2. Regenerate the JSON Schema with `export_json_schema.py`.
+3. Regenerate fixtures with `export_golden_bundle.py`.
+4. Run Parser compatibility tests and secret scan.
+5. Update the runtime validator/hash tests with the new schema and fixture.
+6. Keep both repos accepting the same `context_bundle.v1` artifact before
    release.

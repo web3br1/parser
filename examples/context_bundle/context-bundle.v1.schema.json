@@ -1,0 +1,1034 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://context-builder.local/schemas/context-bundle.v1.schema.json",
+  "title": "context_bundle.v1",
+  "description": "Shared contract for transferring compiled, reviewed context from the Parser upstream project into a runtime chatbot/importer.",
+  "$defs": {
+    "ContextBundleEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "chunk_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chunk Id"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "page_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Number"
+        },
+        "sheet_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet Name"
+        },
+        "row_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Number"
+        }
+      },
+      "required": [
+        "id",
+        "source_id"
+      ],
+      "title": "ContextBundleEvidence",
+      "type": "object"
+    },
+    "ContextBundleFact": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "fact_type": {
+          "title": "Fact Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "normalized_content": {
+          "additionalProperties": true,
+          "title": "Normalized Content",
+          "type": "object"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "chunk_id": {
+          "format": "uuid",
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "evidence_span_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Evidence Span Ids",
+          "type": "array"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        }
+      },
+      "required": [
+        "id",
+        "fact_type",
+        "schema_version",
+        "normalized_content",
+        "source_id",
+        "chunk_id"
+      ],
+      "title": "ContextBundleFact",
+      "type": "object"
+    },
+    "ContextBundleGap": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "source_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        }
+      },
+      "title": "ContextBundleGap",
+      "type": "object"
+    },
+    "ContextBundleIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "workspace_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workspace Name"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "attributes": {
+          "additionalProperties": true,
+          "title": "Attributes",
+          "type": "object"
+        }
+      },
+      "title": "ContextBundleIdentity",
+      "type": "object"
+    },
+    "ContextBundleIntegrity": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_hash": {
+          "title": "Bundle Hash",
+          "type": "string"
+        },
+        "canonicalization": {
+          "default": "json.sort_keys.compact.v1",
+          "title": "Canonicalization",
+          "type": "string"
+        },
+        "source_count": {
+          "title": "Source Count",
+          "type": "integer"
+        },
+        "fact_count": {
+          "title": "Fact Count",
+          "type": "integer"
+        },
+        "rule_count": {
+          "title": "Rule Count",
+          "type": "integer"
+        },
+        "evidence_count": {
+          "title": "Evidence Count",
+          "type": "integer"
+        },
+        "gap_count": {
+          "default": 0,
+          "title": "Gap Count",
+          "type": "integer"
+        },
+        "test_count": {
+          "default": 0,
+          "title": "Test Count",
+          "type": "integer"
+        },
+        "tool_recommendation_count": {
+          "default": 0,
+          "title": "Tool Recommendation Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bundle_hash",
+        "source_count",
+        "fact_count",
+        "rule_count",
+        "evidence_count"
+      ],
+      "title": "ContextBundleIntegrity",
+      "type": "object"
+    },
+    "ContextBundleMemoryPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "retention": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retention"
+        },
+        "profile_memory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Memory"
+        },
+        "conversation_memory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conversation Memory"
+        },
+        "persist_user_personal_data": {
+          "default": false,
+          "title": "Persist User Personal Data",
+          "type": "boolean"
+        },
+        "store_unvalidated_claims": {
+          "default": false,
+          "title": "Store Unvalidated Claims",
+          "type": "boolean"
+        },
+        "retention_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retention Days"
+        },
+        "allowed_memory_scopes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Memory Scopes",
+          "type": "array"
+        },
+        "deletion_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deletion Policy"
+        },
+        "allowed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed",
+          "type": "array"
+        },
+        "denied": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Denied",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "ContextBundleMemoryPolicy",
+      "type": "object"
+    },
+    "ContextBundleReadiness": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "ready",
+            "warning",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "integer"
+        },
+        "blocking_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocking Reasons",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "score"
+      ],
+      "title": "ContextBundleReadiness",
+      "type": "object"
+    },
+    "ContextBundleRule": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "rule_type": {
+          "title": "Rule Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "condition": {
+          "additionalProperties": true,
+          "title": "Condition",
+          "type": "object"
+        },
+        "action": {
+          "additionalProperties": true,
+          "title": "Action",
+          "type": "object"
+        },
+        "priority": {
+          "title": "Priority",
+          "type": "integer"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "source_id": {
+          "format": "uuid",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "chunk_id": {
+          "format": "uuid",
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "evidence_span_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Evidence Span Ids",
+          "type": "array"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        }
+      },
+      "required": [
+        "id",
+        "rule_type",
+        "schema_version",
+        "condition",
+        "action",
+        "priority",
+        "source_id",
+        "chunk_id"
+      ],
+      "title": "ContextBundleRule",
+      "type": "object"
+    },
+    "ContextBundleSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "original_filename": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Filename"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "source_reliability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Reliability"
+        },
+        "authority_level": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Level"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated At"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "status"
+      ],
+      "title": "ContextBundleSource",
+      "type": "object"
+    },
+    "ContextBundleTest": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt"
+        },
+        "expected_behavior": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Behavior"
+        },
+        "expected_answer_contains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Answer Contains",
+          "type": "array"
+        },
+        "forbidden_answer_contains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Answer Contains",
+          "type": "array"
+        },
+        "required_fact_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Required Fact Ids",
+          "type": "array"
+        },
+        "required_rule_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Required Rule Ids",
+          "type": "array"
+        },
+        "required_evidence_span_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Required Evidence Span Ids",
+          "type": "array"
+        },
+        "must_not_use_unvalidated_data": {
+          "default": true,
+          "title": "Must Not Use Unvalidated Data",
+          "type": "boolean"
+        },
+        "critical": {
+          "default": false,
+          "title": "Critical",
+          "type": "boolean"
+        },
+        "assertion": {
+          "additionalProperties": true,
+          "title": "Assertion",
+          "type": "object"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        }
+      },
+      "title": "ContextBundleTest",
+      "type": "object"
+    },
+    "ContextBundleToolRecommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "risk_level": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Risk Level"
+        },
+        "recommended": {
+          "default": true,
+          "title": "Recommended",
+          "type": "boolean"
+        },
+        "allowed_operations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Operations",
+          "type": "array"
+        },
+        "requires_human_approval": {
+          "default": false,
+          "title": "Requires Human Approval",
+          "type": "boolean"
+        },
+        "input_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Policy"
+        },
+        "output_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Policy"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "inputs": {
+          "additionalProperties": true,
+          "title": "Inputs",
+          "type": "object"
+        }
+      },
+      "title": "ContextBundleToolRecommendation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "context_bundle.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "context_version": {
+      "title": "Context Version",
+      "type": "string"
+    },
+    "workspace_id": {
+      "format": "uuid",
+      "title": "Workspace Id",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleSource"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleFact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleRule"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleEvidence"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "identity": {
+      "$ref": "#/$defs/ContextBundleIdentity"
+    },
+    "gaps": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleGap"
+      },
+      "title": "Gaps",
+      "type": "array"
+    },
+    "tests": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleTest"
+      },
+      "title": "Tests",
+      "type": "array"
+    },
+    "memory_policy": {
+      "$ref": "#/$defs/ContextBundleMemoryPolicy"
+    },
+    "tool_recommendations": {
+      "items": {
+        "$ref": "#/$defs/ContextBundleToolRecommendation"
+      },
+      "title": "Tool Recommendations",
+      "type": "array"
+    },
+    "readiness": {
+      "$ref": "#/$defs/ContextBundleReadiness"
+    },
+    "integrity": {
+      "$ref": "#/$defs/ContextBundleIntegrity"
+    }
+  },
+  "required": [
+    "schema_version",
+    "context_version",
+    "workspace_id",
+    "generated_at",
+    "sources",
+    "facts",
+    "rules",
+    "evidence",
+    "identity",
+    "gaps",
+    "tests",
+    "memory_policy",
+    "tool_recommendations",
+    "readiness",
+    "integrity"
+  ],
+  "type": "object"
+}
