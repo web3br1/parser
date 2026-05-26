@@ -13,15 +13,16 @@ Comece por [docs/00-start-here/CLAUDE.md](docs/00-start-here/CLAUDE.md). Ele e o
 
 Leitura rapida:
 
-1. [Decisoes fechadas do MVP](docs/00-start-here/MVP_DECISIONS.md)
-2. [Visao geral do sistema](docs/00-start-here/SYSTEM_OVERVIEW.md)
-3. [Escopo do MVP](docs/01-product/MVP_SCOPE.md)
-4. [Pipeline tecnico](docs/03-pipeline/PIPELINE.md)
-5. [Context Bundle Export](docs/03-pipeline/CONTEXT_BUNDLE.md)
-6. [Runtime local](docs/operations/LOCAL_RUNTIME.md)
-7. [Docker local runtime](docs/operations/DOCKER_LOCAL_RUNTIME.md)
-8. [Modelo de dados](docs/04-data/DATA_MODEL.md)
-9. [Criterios de aceite](docs/07-qa/ACCEPTANCE_CRITERIA.md)
+1. [Guia completo de uso](docs/00-start-here/USER_GUIDE.md)
+2. [Decisoes fechadas do MVP](docs/00-start-here/MVP_DECISIONS.md)
+3. [Visao geral do sistema](docs/00-start-here/SYSTEM_OVERVIEW.md)
+4. [Escopo do MVP](docs/01-product/MVP_SCOPE.md)
+5. [Pipeline tecnico](docs/03-pipeline/PIPELINE.md)
+6. [Context Bundle Export](docs/03-pipeline/CONTEXT_BUNDLE.md)
+7. [Runtime local](docs/operations/LOCAL_RUNTIME.md)
+8. [Docker local runtime](docs/operations/DOCKER_LOCAL_RUNTIME.md)
+9. [Modelo de dados](docs/04-data/DATA_MODEL.md)
+10. [Criterios de aceite](docs/07-qa/ACCEPTANCE_CRITERIA.md)
 
 ## Estrutura
 
