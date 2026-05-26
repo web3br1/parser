@@ -4,7 +4,7 @@
 
 **Goal:** Build one guided Context Build flow that accepts a single document, loose multi-document batch, or source pack, detects the input automatically, tracks generation of `context_bundle.v1`, and provides a safe AI tutorial sidecar with allowlisted tool calls.
 
-**Architecture:** Use Clean Architecture boundaries. Domain owns `ContextBuildRun` and state transitions. Application use cases detect input, create runs, enqueue work, compile/export context and expose safe tutor tools. Adapters implement Supabase persistence, storage, existing upload/ingest queues, source-pack preflight/compiler, and LLM/tool-calling. The frontend Wizard is deterministic; the AI tutor explains and invokes restricted tools but never publishes operational truth without human confirmation.
+**Architecture:** Use Clean Architecture boundaries. Domain owns `ContextBuildRun` and state transitions. Application use cases detect input, create runs, enqueue work, compile/export context and expose safe tutor tools. Backend detection/preflight is the source of truth. The frontend may render an optimistic preview, but it must always accept the backend decision before committing a build. Adapters implement Supabase persistence, storage, existing upload/ingest queues, source-pack preflight/compiler, and LLM/tool-calling. The frontend Wizard is deterministic; the AI tutor explains and invokes restricted tools but never publishes operational truth without human confirmation.
 
 **Tech Stack:** Python 3.12, FastAPI, Pydantic v2, Supabase/Postgres migrations, existing worker/job pipeline, Next.js App Router, React/TypeScript, existing console primitives, pytest, ruff, mypy, frontend typecheck and smoke scripts.
 
@@ -24,6 +24,20 @@ New Context Build
 ```
 
 `source_pack` is an internal input mode, not a separate user journey.
+
+## Review Fixes Incorporated
+
+This plan explicitly incorporates the review findings from 2026-05-26:
+
+- backend detection is authoritative; frontend detection is only a preview;
+- `compile_context_bundle_after_confirmation` is either implemented and tested or removed from the MVP tool list. This plan implements and tests it;
+- migration numbering must be verified before writing SQL. Current repository state has latest migration `046_source_pack_import_runs.sql`, so `047_context_build_runs.sql` is correct at plan time;
+- `updated_at` requires `public.touch_updated_at()` trigger;
+- indexes are specified in the SQL contract and integrity tests;
+- `input_hash` is nullable until real content is staged/uploaded, while `input_fingerprint` is always present for pre-upload correlation;
+- `context_build_runs` is the canonical lifecycle table for new flows; `source_pack_import_runs` remains compatibility-only;
+- compile/complete/fail use cases are implemented before API/tutor compile actions;
+- tasks touching `main.py` are sequenced and must not run in parallel.
 
 ## Clean Architecture Map
 
@@ -51,10 +65,12 @@ Use cases own orchestration:
 - `PreflightContextBuildRun`
 - `CreateContextBuildRun`
 - `QueueContextBuildRun`
+- `CompileContextBuildRun`
 - `GetContextBuildRun`
 - `ListContextBuildRuns`
 - `CompleteContextBuildRun`
 - `FailContextBuildRun`
+- `ExportContextBundleForRun`
 - `ExplainContextBuildState`
 - `InvokeTutorTool`
 
@@ -90,7 +106,21 @@ Frontend route:
 
 Add migration `047_context_build_runs.sql`.
 
-Do not delete `source_pack_import_runs` in this task. Keep it as historical/specialized compatibility. New flows should write `context_build_runs`; later migration can backfill/deprecate.
+Before creating the migration, verify the current latest migration:
+
+```powershell
+Get-ChildItem supabase\migrations | Sort-Object Name | Select-Object -Last 1 -ExpandProperty Name
+```
+
+Expected at plan time:
+
+```text
+046_source_pack_import_runs.sql
+```
+
+If the latest migration is no longer `046`, stop and renumber this task before editing files.
+
+Do not delete `source_pack_import_runs` in this task. Keep it as historical/specialized compatibility. `context_build_runs` is canonical for all new flows. The existing source-pack preflight route must remain compatible, but when it persists a run it should also create or link a canonical `context_build_runs` row. Later migration can backfill/deprecate `source_pack_import_runs`.
 
 Minimum table:
 
@@ -123,7 +153,8 @@ create table public.context_build_runs (
     'reject'
   )),
 
-  input_hash text not null,
+  input_fingerprint text not null,
+  input_hash text,
   source_dir text,
   source_pack_id text,
   source_pack_version text,
@@ -153,7 +184,31 @@ create table public.context_build_runs (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index idx_context_build_runs_workspace_created_at
+on public.context_build_runs(workspace_id, created_at desc);
+
+create index idx_context_build_runs_workspace_status
+on public.context_build_runs(workspace_id, status);
+
+create index idx_context_build_runs_workspace_input_mode
+on public.context_build_runs(workspace_id, input_mode);
+
+create index idx_context_build_runs_workspace_input_fingerprint
+on public.context_build_runs(workspace_id, input_fingerprint);
+
+create index idx_context_build_runs_workspace_input_hash
+on public.context_build_runs(workspace_id, input_hash);
+
+create index idx_context_build_runs_source_pack
+on public.context_build_runs(workspace_id, source_pack_id, source_pack_version);
+
+create trigger trg_context_build_runs_updated_at
+before update on public.context_build_runs
+for each row execute function public.touch_updated_at();
 ```
+
+`input_fingerprint` is a stable pre-upload correlation key computed from metadata such as relative paths, names, sizes and last-modified values. `input_hash` is the content hash and may be null until upload/staging completes. Source-dir server preflight may fill both when content is available.
 
 Access model:
 
@@ -188,6 +243,8 @@ Input modes:
 | `single_document` | one supported file, no manifest | current upload/ingest/review/publish/export |
 | `multi_document_batch` | multiple supported files, no manifest | repeated upload/ingest with one build run |
 | `source_pack` | `00_source_manifest.md` or numbered manifest structure | source-pack preflight/compile/export |
+
+The backend preflight response is authoritative. Frontend detection can only label the selected input as `single_file_preview`, `loose_batch_preview`, `source_pack_candidate_preview` or `invalid_preview`. The Wizard must replace preview labels with backend `input_mode` and `recommended_action` after preflight.
 
 The Wizard must keep `Sources` as history/inventory. Do not turn `SourcesPage` into the Wizard.
 
@@ -229,6 +286,8 @@ open_relevant_screen
 query_published_knowledge
 ```
 
+`compile_context_bundle_after_confirmation` is an MVP tool in this plan. It must call the same backend use case as `POST /context-build-runs/{run_id}/actions/compile`; it cannot shell out directly and cannot compile without a stored confirmation token.
+
 Mutating tools require confirmation with:
 
 - target workspace;
@@ -253,6 +312,12 @@ Use SDD with separate agents:
 
 Do not dispatch two agents to edit the same files in parallel.
 
+Sequencing constraints:
+
+- Task 5 must finish before Task 9 because both register routers in `apps/api/src/context_builder/main.py`.
+- Task 7 must finish before Task 10 because both touch `apps/web/src/components/workspace-shell.tsx`.
+- Task 8 must finish before Task 9 if tutor tools call context-build API endpoints.
+
 ## Task 1: Domain Contract
 
 **Files:**
@@ -274,13 +339,15 @@ def test_context_build_run_can_transition_to_preflighted() -> None:
         workspace_id="ws_1",
         actor_user_id="user_1",
         input_mode="source_pack",
-        input_hash="sha256:abc",
+        input_fingerprint="fingerprint:abc",
     )
 
-    updated = run.mark_preflighted(recommended_action="compile_as_source_pack")
+    updated = run.mark_preflighted(
+        recommended_action=ContextBuildRecommendedAction.COMPILE_AS_SOURCE_PACK
+    )
 
     assert updated.status == ContextBuildStatus.PREFLIGHTED
-    assert updated.recommended_action == "compile_as_source_pack"
+    assert updated.recommended_action == ContextBuildRecommendedAction.COMPILE_AS_SOURCE_PACK
 ```
 
 Run:
@@ -293,7 +360,7 @@ Expected: FAIL because `ContextBuildRun` does not exist.
 
 - [ ] **Step 2: Implement minimal domain model**
 
-Add dataclass/enums only. No DB/FastAPI imports.
+Add dataclass/enums only. No DB/FastAPI imports. Domain tests must use enums, not raw strings, for status and recommended action.
 
 - [ ] **Step 3: Run GREEN**
 
@@ -316,7 +383,15 @@ Expected: PASS.
 
 - [ ] **Step 1: Write failing integrity tests**
 
-Assert table exists, modes/statuses/actions are present, RLS enabled, grants are backend-owned, indexes exist, and no dead `create policy` exists.
+First verify migration numbering:
+
+```powershell
+Get-ChildItem supabase\migrations | Sort-Object Name | Select-Object -Last 1 -ExpandProperty Name
+```
+
+Expected: `046_source_pack_import_runs.sql`.
+
+Then write tests that assert table exists, modes/statuses/actions are present, `input_fingerprint text not null` exists, `input_hash text` exists and is nullable, `public.touch_updated_at()` trigger exists, RLS is enabled, grants are backend-owned, all indexes named in this plan exist, and no dead `create policy` exists.
 
 Run:
 
@@ -355,6 +430,8 @@ Cover:
 
 - create payload validates all three modes;
 - invalid mode fails;
+- `input_fingerprint` is required;
+- `input_hash` may be null before upload/staging;
 - repository creates row in `context_build_runs`;
 - repository lists only workspace rows;
 - repository gets by `id` and `workspace_id`;
@@ -371,6 +448,14 @@ Expected: FAIL because modules do not exist.
 - [ ] **Step 2: Implement schemas and repository adapter**
 
 Repository uses Supabase fluent API. Keep the adapter thin and testable with fake DB.
+
+Fake DB tests prove API shape and workspace filters. They do not prove Postgres
+RLS, jsonb behavior, grants or real Supabase query semantics. Real Supabase
+verification remains a smoke/readiness gate after implementation:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\smoke\run_real_smoke.py --target local --full --json-report .run\smoke-local-full.json
+```
 
 - [ ] **Step 3: Run GREEN**
 
@@ -399,6 +484,7 @@ Cases:
 - manifest complete -> `source_pack`, `compile_as_source_pack`;
 - manifest incomplete -> `source_pack`, `reject`;
 - empty input -> `reject`.
+- preview metadata without content creates `input_fingerprint` but leaves `input_hash` null.
 
 Run:
 
@@ -410,7 +496,16 @@ Expected: FAIL because use case does not exist.
 
 - [ ] **Step 2: Implement use case**
 
-Use pure input metadata where possible. For local source-pack path support, call existing `inspect_source_pack_upload`.
+Use pure input metadata where possible. For local source-pack path support, call existing `inspect_source_pack_upload`. This backend use case is the only authoritative detector. Frontend preview must not be treated as final classification.
+
+Also implement:
+
+- `CompileContextBuildRun`
+- `CompleteContextBuildRun`
+- `FailContextBuildRun`
+- `ExportContextBundleForRun`
+
+`CompileContextBuildRun` may initially support only `source_pack` runs and must return a clear unsupported-mode error for `single_document` and `multi_document_batch`.
 
 - [ ] **Step 3: Run GREEN**
 
@@ -440,6 +535,8 @@ Cover:
 - `POST /preflight` with `persist=true` creates `context_build_runs`;
 - `GET /context-build-runs` lists workspace runs;
 - `GET /context-build-runs/{run_id}` filters workspace;
+- `POST /context-build-runs/{run_id}/actions/compile` calls `CompileContextBuildRun`;
+- compile action requires manager/owner role and workspace-scoped run id;
 - source-pack legacy endpoint still works.
 
 Run:
@@ -486,9 +583,9 @@ Expected: PASS.
 Cases:
 
 - empty files -> invalid;
-- one supported file -> `single_file`;
-- multiple supported files -> `loose_batch`;
-- manifest file present -> `source_pack_candidate`;
+- one supported file -> `single_file_preview`;
+- multiple supported files -> `loose_batch_preview`;
+- manifest file present -> `source_pack_candidate_preview`;
 - blocked extension -> invalid.
 
 Run:
@@ -501,7 +598,7 @@ Expected: FAIL because library does not exist.
 
 - [ ] **Step 2: Implement library and test runner**
 
-Use no React in the detection library.
+Use no React in the detection library. The library returns preview labels only; it must not expose canonical `ContextBuildMode` values.
 
 - [ ] **Step 3: Run GREEN**
 
@@ -534,10 +631,11 @@ Run:
 
 ```powershell
 corepack pnpm --filter @context-builder/web typecheck
-node scripts\smoke\frontend_console_smoke.mjs --base-url http://127.0.0.1:3000
 ```
 
-Expected: typecheck fails until route/components exist; smoke requires a running dev server and may be deferred if no server is running.
+Expected: typecheck fails until route/components exist.
+
+Smoke is not a gate in this step because it requires a running dev server. Only update `scripts/smoke/frontend_console_smoke.mjs` route coverage here; run the smoke later when a server is explicitly running.
 
 - [ ] **Step 2: Implement static Wizard**
 
@@ -577,6 +675,7 @@ Behaviors:
 - single file calls current `/sources/upload`;
 - loose batch uploads sequentially with per-file progress;
 - source pack candidate calls `/context-build-runs/preflight` when backend route exists;
+- frontend replaces preview mode with backend `input_mode` and `recommended_action`;
 - if browser-native source-pack staging is not implemented yet, UI says it needs backend staging and does not fake completion.
 
 - [ ] **Step 2: Verify**
@@ -608,6 +707,9 @@ Cover:
 - unknown tool rejected;
 - mutating tool without confirmation rejected;
 - publish/approve/delete tools are not registered;
+- `compile_context_bundle_after_confirmation` is registered as mutating;
+- `compile_context_bundle_after_confirmation` refuses to run without stored confirmation;
+- confirmed compile delegates to `CompileContextBuildRun`, never shell;
 - tool call requires workspace membership;
 - response labels observation vs recommendation vs confirmed action.
 
@@ -629,6 +731,7 @@ Implement MVP tools:
 - `get_context_build_run_status`
 - `draft_compile_plan`
 - `request_compile_confirmation`
+- `compile_context_bundle_after_confirmation`
 - `open_relevant_screen`
 - optional `query_published_knowledge`
 
@@ -762,12 +865,18 @@ Expected: commit created.
 
 - One Wizard handles single document, loose batch and source pack.
 - User does not need to know what a source pack is.
-- Source pack remains an internal mode selected by detection/preflight.
+- Backend preflight is the authoritative detector.
+- Frontend detection is preview-only and cannot commit a canonical mode by itself.
+- Source pack remains an internal mode selected by backend detection/preflight.
 - `context_build_runs` tracks every build lifecycle.
+- `context_build_runs` is canonical for new build flows.
+- `source_pack_import_runs` remains compatibility-only and is linked or mirrored from canonical runs when legacy preflight persists.
+- `input_fingerprint` exists before content upload; `input_hash` is filled after content/staging is available.
 - Legacy source-pack preflight remains compatible.
 - AI tutor is sidecar/tutorial only.
 - Tutor tools are allowlisted.
 - Mutating tutor tools require explicit human confirmation.
+- `compile_context_bundle_after_confirmation` is implemented, tested, and delegates to backend compile use case.
 - Tutor cannot approve, reject, publish, delete, change permissions or call shell.
 - Frontend route `/workspaces/{workspaceId}/context-build` exists and is in nav.
 - `Sources` remains inventory/history.
