@@ -225,7 +225,7 @@ Para provar importacao pelo runtime consumidor, defina o comando real de import
 antes do smoke completo:
 
 ```powershell
-$env:CONTEXT_BUNDLE_RUNTIME_IMPORT_COMMAND="python -m runtime.importer --bundle {bundle}"
+$env:CONTEXT_BUNDLE_RUNTIME_IMPORT_COMMAND="python -m runtime.importer --bundle ""{bundle}"""
 uv run --cache-dir .uv-cache python scripts\smoke\run_real_smoke.py --target local --full --json-report .run\smoke-local-full.json
 ```
 

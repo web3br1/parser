@@ -117,6 +117,37 @@ def test_successful_command_writes_sanitized_report_and_expands_bundle(
     assert report["error"] is None
 
 
+def test_unquoted_bundle_placeholder_preserves_windows_path_with_spaces(
+    probe: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / "Meus projetos" / "bundle.context_bundle.v1.json"
+    report_path = tmp_path / "runtime-import.json"
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+    monkeypatch.setattr(probe.subprocess, "run", fake_run)
+
+    code = run_cli(
+        probe,
+        [
+            "--bundle-path",
+            str(bundle_path),
+            "--command",
+            f'"{sys.executable}" -m runtime_probe --bundle {{bundle}}',
+            "--json-report",
+            str(report_path),
+        ],
+    )
+
+    assert code == 0
+    assert calls == [[sys.executable, "-m", "runtime_probe", "--bundle", str(bundle_path)]]
+
+
 def test_failed_command_returns_1_and_records_returncode(
     probe: Any,
     monkeypatch: pytest.MonkeyPatch,

@@ -50,6 +50,10 @@ def split_command(command: str) -> list[str]:
     return parts
 
 
+def render_command(command_template: str, bundle_path: str) -> list[str]:
+    return [part.replace("{bundle}", bundle_path) for part in split_command(command_template)]
+
+
 def ensure_text(value: str | bytes | None) -> str:
     if value is None:
         return ""
@@ -112,9 +116,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             write_report(args.json_report, report, env)
         return 2
 
-    rendered_command = command_template.replace("{bundle}", args.bundle_path)
     try:
-        command = split_command(rendered_command)
+        command = render_command(command_template, args.bundle_path)
     except ValueError:
         report = failed_config_report(args, started_at, started, "runtime_import_command_invalid")
         print("ERROR: runtime import command invalid", file=sys.stderr)
