@@ -1,6 +1,6 @@
 # TASK-019 - Source Pack Import Run Persistence
 
-Status: implemented locally, pending real Supabase smoke.
+Status: implemented and committed; pending real Supabase smoke.
 
 ## Goal
 
@@ -19,7 +19,10 @@ workspace-scoped import run.
 
 ## Remaining Product Work
 
-- Compile API should update the persisted run to `compiled` or `failed`
-- ZIP/folder upload should create import runs automatically
-- Console should show import-run history and latest bundle hash
-- Real Supabase smoke should verify RLS, grants and audit access
+- New builds should use canonical `context_build_runs` from `TASK-020`.
+- `source_pack_import_runs` remains compatibility/history for the legacy
+  source-pack route.
+- ZIP/folder upload staging should create canonical context build runs
+  automatically; tracked in `TASK-021`.
+- Real Supabase smoke should verify RLS, grants and audit access; tracked in
+  `TASK-022`.

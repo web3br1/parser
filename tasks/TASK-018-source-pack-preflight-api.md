@@ -1,6 +1,6 @@
 # TASK-018 - Source Pack Preflight API
 
-Status: implemented locally, pending full product upload UX.
+Status: implemented and committed; legacy route kept for compatibility.
 
 ## Goal
 
@@ -36,3 +36,9 @@ processing files individually.
 ```powershell
 uv run --cache-dir .uv-cache pytest tests\api\test_source_pack_preflight.py -q
 ```
+
+## Remaining Product Work
+
+- Browser folder/zip content staging is tracked in `TASK-021`.
+- The canonical lifecycle for new builds is `context_build_runs` from
+  `TASK-020`; `source_pack_import_runs` remains compatibility/history.

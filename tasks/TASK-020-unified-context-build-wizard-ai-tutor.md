@@ -1,6 +1,6 @@
 # TASK-020 - Unified Context Build Wizard + AI Tutor
 
-**Status:** implemented locally on branch `codex/source-pack-context-bundle-compiler`
+**Status:** implemented and committed on branch `codex/source-pack-context-bundle-compiler`
 
 ## Goal
 
@@ -39,11 +39,13 @@ optimistic preview.
 
 ## Not Implemented In This Slice
 
-- Direct browser folder/zip upload staging for source-pack compilation.
+- Direct browser folder/zip upload staging for source-pack compilation. Tracked
+  in `TASK-021`.
 - Normal document and loose batch compilation into bundle without the existing
   review/publish pipeline.
 - LLM-backed freeform tutorial conversation. Current tutor is deterministic by
   design.
+- Real Supabase/Docker smoke and runtime import proof. Tracked in `TASK-022`.
 
 ## Verification
 
@@ -52,3 +54,9 @@ optimistic preview.
 - `uv run --cache-dir .uv-cache ruff check ...`
 - `npm run typecheck:python`
 - `corepack pnpm --filter @context-builder/web typecheck`
+- Full gate at commit `c604176`:
+  - `uv run --cache-dir .uv-cache pytest -q` -> `654 passed`
+  - `uv run --cache-dir .uv-cache ruff check .` -> passed
+  - `npm run typecheck:python:strict-full` -> passed
+  - `corepack pnpm --filter @context-builder/web build` -> passed
+  - `uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py` -> passed

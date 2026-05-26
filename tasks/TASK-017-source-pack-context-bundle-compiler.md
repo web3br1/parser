@@ -1,6 +1,6 @@
 # TASK-017 - Source Pack Context Bundle Compiler
 
-Status: implemented locally, pending full release gate.
+Status: implemented and committed; pending runtime import smoke.
 
 ## Goal
 
@@ -26,11 +26,11 @@ user to manually map files, rows, sections or evidence anchors.
 
 ## Remaining Product Work
 
-- Folder/zip upload UI.
-- API endpoint for source-pack preflight.
-- Persistence of source-pack import runs.
-- Review UI grouped by package, source and evidence anchor.
-- Runtime import smoke using the generated artifact.
+- Browser folder/zip staging is tracked in `TASK-021`.
+- Runtime import smoke using the generated artifact is tracked in `TASK-022`.
+
+The source-pack preflight API, import-run persistence and unified Context Build
+Wizard are implemented in `TASK-018`, `TASK-019` and `TASK-020`.
 
 ## Verification
 
