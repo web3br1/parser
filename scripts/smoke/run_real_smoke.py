@@ -168,6 +168,29 @@ def build_phases(args: argparse.Namespace, env: Mapping[str, str]) -> list[Phase
                 env_overrides=common_env,
             )
         )
+        if not args.skip_source_pack_compile:
+            phases.append(
+                Phase(
+                    "source-pack-compile",
+                    "subprocess",
+                    python_cmd(
+                        "scripts/source_pack/compile_context_bundle.py",
+                        "--source-dir",
+                        args.source_pack_dir,
+                        "--check",
+                    ),
+                    env_overrides=common_env,
+                )
+            )
+        if not args.skip_runtime_import:
+            phases.append(
+                Phase(
+                    "runtime-import",
+                    "subprocess",
+                    python_cmd("scripts/smoke/runtime_import_probe.py"),
+                    env_overrides=common_env,
+                )
+            )
 
     return phases
 
@@ -284,8 +307,23 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--full", action="store_true", help="Run full smoke after minimum smoke.")
     parser.add_argument("--json-report", default=None, help="Write orchestration JSON report.")
     parser.add_argument("--api-base-url", default=None, help="Override API_BASE_URL.")
+    parser.add_argument(
+        "--source-pack-dir",
+        default=r"C:\tmp\context-builder-sources\compounding-pharmacy-gold",
+        help="Source pack directory checked during full smoke.",
+    )
     parser.add_argument("--skip-readiness", action="store_true", help="Skip local readiness phase.")
     parser.add_argument("--skip-contracts", action="store_true", help="Skip Supabase contract phase.")
+    parser.add_argument(
+        "--skip-source-pack-compile",
+        action="store_true",
+        help="Skip source pack compile check during full smoke.",
+    )
+    parser.add_argument(
+        "--skip-runtime-import",
+        action="store_true",
+        help="Skip runtime import probe during full smoke.",
+    )
     parser.add_argument("--continue-on-failure", action="store_true", help="Run later phases after failures.")
     parser.add_argument("--dry-run", action="store_true", help="Plan phases without subprocesses or HTTP.")
     return parser.parse_args(argv)
