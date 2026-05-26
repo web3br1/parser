@@ -163,6 +163,59 @@ export type UploadResponse = {
   message: string;
 };
 
+export type ContextBuildFileMetadata = {
+  name: string;
+  size: number;
+  relative_path: string | null;
+  mime_type: string | null;
+  last_modified: number | null;
+};
+
+export type ContextBuildPreflightRequest = {
+  files: ContextBuildFileMetadata[];
+  input_fingerprint?: string | null;
+  persist?: boolean;
+};
+
+export type ContextBuildPreflightResponse = {
+  run_id: string | null;
+  input_mode: "single_document" | "multi_document_batch" | "source_pack";
+  status: string;
+  recommended_action: "compile_as_source_pack" | "normal_ingest" | "batch_ingest" | "reject" | string;
+  input_fingerprint: string;
+  input_hash: string | null;
+  source_dir?: string | null;
+  source_pack_id: string | null;
+  source_pack_version: string | null;
+  counts: Record<string, number>;
+  missing_files: string[];
+  extra_files: string[];
+  warnings: string[];
+  errors: string[];
+  blocking_reasons: string[];
+  metadata?: Record<string, unknown> | null;
+};
+
+export type ContextBuildCompileResponse = {
+  run_id: string;
+  status: string;
+  bundle_hash: string | null;
+  context_version: string | null;
+  readiness_status: "ready" | "warning" | "blocked" | "unknown" | string;
+  warnings: string[];
+  blocking_reasons: string[];
+};
+
+type ContextBuildRunApiResponse = {
+  id: string;
+  status: string;
+  bundle_hash: string | null;
+  context_version: string | null;
+  readiness_status: "ready" | "warning" | "blocked" | string | null;
+  warnings: string[];
+  errors: string[];
+};
+
 export type JobStatus = {
   job_id: string;
   status: string;
@@ -353,3 +406,44 @@ export type QueryResponse = {
     estimated_cost: number;
   };
 };
+
+export async function preflightContextBuildRun(
+  workspaceId: string,
+  token: string,
+  request: ContextBuildPreflightRequest
+): Promise<ContextBuildPreflightResponse> {
+  return apiFetch<ContextBuildPreflightResponse>(
+    `/workspaces/${workspaceId}/context-build-runs/preflight`,
+    {
+      method: "POST",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...request, persist: request.persist ?? true })
+    }
+  );
+}
+
+export async function compileContextBuildRun(
+  workspaceId: string,
+  token: string,
+  runId: string
+): Promise<ContextBuildCompileResponse> {
+  const response = await apiFetch<ContextBuildRunApiResponse>(
+    `/workspaces/${workspaceId}/context-build-runs/${runId}/actions/compile`,
+    {
+      method: "POST",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmation: true })
+    }
+  );
+  return {
+    run_id: response.id,
+    status: response.status,
+    bundle_hash: response.bundle_hash,
+    context_version: response.context_version,
+    readiness_status: response.readiness_status ?? "unknown",
+    warnings: response.warnings,
+    blocking_reasons: response.errors
+  };
+}

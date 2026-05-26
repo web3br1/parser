@@ -160,6 +160,7 @@ Rotas principais:
 |---|---|
 | `/workspaces` | Listar/criar workspaces |
 | `/workspaces/{workspaceId}` | Dashboard operacional |
+| `/workspaces/{workspaceId}/context-build` | Wizard unico para documento, lote ou source pack |
 | `/workspaces/{workspaceId}/sources` | Upload e lista de fontes |
 | `/workspaces/{workspaceId}/sources/{sourceId}` | Detalhes da fonte e job |
 | `/workspaces/{workspaceId}/review` | Revisar facts/rules extraidos |
@@ -367,8 +368,14 @@ esperado e:
 7. O operador revisa/publica.
 8. O runtime externo importa o `context_bundle.v1`.
 
-Hoje, parte desse fluxo ja existe como API/CLI. A orquestracao completa de
-folder/zip upload no console ainda e uma proxima slice.
+Hoje, o console ja tem o `Context Build` Wizard para selecionar arquivo(s),
+detectar entrada, chamar preflight autoritativo do backend e acompanhar o estado
+do build. Quando o browser envia apenas metadados de uma pasta source pack, o
+backend identifica o manifesto, mas bloqueia a compilacao ate o conteudo estar
+staged no servidor. O compile completo ja funciona para source packs acessiveis
+por `source_dir` interno no backend, desde que o caminho esteja dentro de
+`CONTEXT_BUILD_ALLOWED_SOURCE_ROOTS` ou da raiz local padrao
+`C:\tmp\context-builder-sources`.
 
 ## 12. Consultar conhecimento publicado
 
@@ -434,16 +441,21 @@ Valide primeiro o smoke minimo. So rode o completo depois dele passar.
 | upload retorna 409 | arquivo duplicado | Abrir source existente |
 | source pack retorna `normal_ingest` | sem `00_source_manifest.md` | Enviar pacote correto ou tratar como arquivos soltos |
 | source pack retorna `reject` | manifesto incompleto | Conferir `missing_files` e `extra_files` |
+| source pack retorna `source_pack_staging_required` | browser enviou metadados, nao conteudo staged | Usar `source_dir` backend ou aguardar slice de staging folder/zip |
+| source pack retorna `source_dir_not_allowed` | caminho interno fora da raiz permitida | Configurar `CONTEXT_BUILD_ALLOWED_SOURCE_ROOTS` ou mover o pacote para raiz permitida |
 | bundle `blocked` | lacuna critica/segredo/unknown/contradicao | Corrigir fonte, revisar e recompilar |
 | `--check` falha | bundle gerado esta desatualizado | Regerar sem `--check` |
 | console nao carrega | JWT ausente/invalido | Login com token de operador |
 
 ## 16. Limites atuais conhecidos
 
-- O console ainda nao orquestra upload de pasta/zip source pack ponta a ponta.
+- O console detecta pasta/source pack por metadados, mas ainda nao faz staging
+  de pasta/zip para compilacao direta no servidor.
 - O compilador de source pack ja gera bundle pelo CLI.
-- O preflight de source pack ja existe na API.
-- Import runs ja sao persistiveis com `persist=true`.
+- O preflight canonico de context build existe na API.
+- Context build runs ja sao persistiveis com `persist=true`.
+- O tutor IA existe como sidecar deterministico com tools allowlistadas; sem
+  confirmacao explicita ele nao executa mutacao.
 - A importacao do bundle pelo chatbot/runtime externo vive fora deste repo.
 - Produzir resposta conversacional final nao e responsabilidade do Parser.
 

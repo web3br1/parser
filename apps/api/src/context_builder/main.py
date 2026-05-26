@@ -18,6 +18,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from context_builder.config import get_settings
 from context_builder.routers import (
+    context_build,
     context_bundle,
     health,
     knowledge,
@@ -25,6 +26,7 @@ from context_builder.routers import (
     query,
     review,
     sources,
+    tutorial,
     unknown,
     workspaces,
 )
@@ -173,9 +175,19 @@ def create_app() -> FastAPI:
         tags=["context-bundle"],
     )
     app.include_router(
+        context_build.router,
+        prefix="/workspaces/{workspace_id}/context-build-runs",
+        tags=["context-build-runs"],
+    )
+    app.include_router(
         privacy.router,
         prefix="/workspaces/{workspace_id}/privacy",
         tags=["privacy"],
+    )
+    app.include_router(
+        tutorial.router,
+        prefix="/workspaces/{workspace_id}/tutorial",
+        tags=["tutorial"],
     )
     return app
 

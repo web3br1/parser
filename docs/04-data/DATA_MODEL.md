@@ -56,6 +56,7 @@ Tipos antigos como `price_table`, `service_catalog`, `payment_policy`, `booking_
 | `token_usage_log` | `017` | Custo e tokens |
 | `audit_logs` | `018` | Auditoria operacional genérica |
 | `source_pack_import_runs` | `046` | Preflight/compile lifecycle de source packs, `input_hash`, readiness e bundle hashes |
+| `context_build_runs` | `047` | Lifecycle canônico de builds de contexto, com `input_fingerprint`, modos de entrada, readiness e bundle hashes |
 
 ## Views Publicadas
 

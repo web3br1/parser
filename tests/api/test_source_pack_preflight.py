@@ -57,9 +57,9 @@ class Query:
         return self
 
     def execute(self) -> Result:
-        assert self.table == "source_pack_import_runs"
+        assert self.table in {"source_pack_import_runs", "context_build_runs"}
         row = {
-            "id": "run_1",
+            "id": "run_1" if self.table == "source_pack_import_runs" else "context_run_1",
             "created_at": "2026-05-25T00:00:00+00:00",
             "updated_at": "2026-05-25T00:00:00+00:00",
             **self.payload,
@@ -103,6 +103,7 @@ def test_source_pack_preflight_without_manifest_falls_back_to_normal_ingest(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    monkeypatch.setenv("CONTEXT_BUILD_ALLOWED_SOURCE_ROOTS", str(tmp_path))
     upload_dir = tmp_path / "loose-upload"
     upload_dir.mkdir()
     (upload_dir / "catalog.csv").write_text("id,name\n1,A\n", encoding="utf-8")
@@ -125,6 +126,7 @@ def test_source_pack_preflight_rejects_incomplete_pack(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    monkeypatch.setenv("CONTEXT_BUILD_ALLOWED_SOURCE_ROOTS", str(tmp_path))
     broken_dir = tmp_path / "broken-pack"
     shutil.copytree(GOLD_DIR, broken_dir)
     (broken_dir / "40_quote_rules_matrix.csv").unlink()
@@ -160,3 +162,5 @@ def test_source_pack_preflight_can_persist_import_run(
     assert db.rows[0]["status"] == "preflighted"
     assert db.rows[0]["recommended_action"] == "compile_as_source_pack"
     assert db.rows[0]["input_hash"].startswith("sha256:")
+    assert db.rows[1]["id"] == "context_run_1"
+    assert db.rows[1]["metadata"]["legacy_source_pack_import_run_id"] == "run_1"

@@ -14,12 +14,18 @@ from context_builder.dependencies import (
     require_upload_permission,
     require_workspace_member,
 )
+from context_builder.schemas.context_build import ContextBuildRunCreate
 from context_builder.schemas.job import JobStatusResponse
 from context_builder.schemas.source import (
     SourcePackPreflightRequest,
     SourcePackPreflightResponse,
     SourceResponse,
     UploadResponse,
+)
+from context_builder.services.context_build_runs import create_context_build_run
+from context_builder.services.context_build_use_cases import (
+    resolve_allowed_source_dir,
+    source_dir_fingerprint,
 )
 from context_builder.services.ingest_queue import create_and_enqueue_ingest_job
 from context_builder.services.source_pack_import_runs import create_import_run_from_preflight
@@ -55,14 +61,44 @@ async def preflight_source_pack_upload(
         "source_pack_preflight_requested",
         workspace_id=membership["workspace_id"],
     )
-    response = inspect_source_pack_upload(Path(payload.source_dir))
+    source_dir = resolve_allowed_source_dir(payload.source_dir)
+    response = inspect_source_pack_upload(source_dir)
     if payload.persist:
         run = create_import_run_from_preflight(
             db,
             workspace_id=membership["workspace_id"],
             actor_user_id=membership["user"]["id"],
-            source_dir=payload.source_dir,
+            source_dir=str(source_dir),
             preflight=response,
+        )
+        create_context_build_run(
+            db,
+            workspace_id=membership["workspace_id"],
+            actor_user_id=membership["user"]["id"],
+            payload=ContextBuildRunCreate(
+                input_mode="source_pack" if response.is_source_pack else "multi_document_batch",
+                input_fingerprint=source_dir_fingerprint(source_dir),
+                input_hash=run.input_hash,
+                recommended_action=(
+                    response.recommended_action
+                    if response.recommended_action != "normal_ingest"
+                    else "batch_ingest"
+                ),
+                source_dir=str(source_dir),
+                source_pack_id=response.source_pack_id,
+                source_pack_version=response.source_pack_version,
+                source_count=response.numbered_source_count,
+                file_counts={
+                    "file_count": response.numbered_source_count,
+                    "csv_count": response.csv_count,
+                    "markdown_count": response.markdown_count,
+                },
+                missing_files=response.missing_files,
+                extra_files=response.extra_files,
+                errors=response.errors,
+                metadata={"legacy_source_pack_import_run_id": run.id},
+            ),
+            status="rejected" if response.recommended_action == "reject" else "preflighted",
         )
         response = response.model_copy(update={"import_run_id": run.id})
     return response
