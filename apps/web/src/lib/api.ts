@@ -172,8 +172,10 @@ export type ContextBuildFileMetadata = {
 };
 
 export type ContextBuildPreflightRequest = {
-  files: ContextBuildFileMetadata[];
+  files?: ContextBuildFileMetadata[];
+  staged_upload_id?: string | null;
   input_fingerprint?: string | null;
+  input_hash?: string | null;
   persist?: boolean;
 };
 
@@ -184,7 +186,6 @@ export type ContextBuildPreflightResponse = {
   recommended_action: "compile_as_source_pack" | "normal_ingest" | "batch_ingest" | "reject" | string;
   input_fingerprint: string;
   input_hash: string | null;
-  source_dir?: string | null;
   source_pack_id: string | null;
   source_pack_version: string | null;
   counts: Record<string, number>;
@@ -194,6 +195,15 @@ export type ContextBuildPreflightResponse = {
   errors: string[];
   blocking_reasons: string[];
   metadata?: Record<string, unknown> | null;
+};
+
+export type ContextBuildStagedUploadResponse = {
+  staged_upload_id: string;
+  input_hash: string;
+  input_fingerprint: string;
+  files: ContextBuildFileMetadata[];
+  warnings: string[];
+  blocking_reasons: string[];
 };
 
 export type ContextBuildCompileResponse = {
@@ -419,6 +429,29 @@ export async function preflightContextBuildRun(
       token,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...request, persist: request.persist ?? true })
+    }
+  );
+}
+
+export async function stageContextBuildUpload(
+  workspaceId: string,
+  token: string,
+  files: File[]
+): Promise<ContextBuildStagedUploadResponse> {
+  const formData = new FormData();
+  const relativePaths = files.map((file) => file.webkitRelativePath || file.name);
+
+  for (const file of files) {
+    formData.append("files", file, file.name);
+  }
+  formData.append("relative_paths", JSON.stringify(relativePaths));
+
+  return apiFetch<ContextBuildStagedUploadResponse>(
+    `/workspaces/${workspaceId}/context-build-runs/staged-uploads`,
+    {
+      method: "POST",
+      token,
+      body: formData
     }
   );
 }

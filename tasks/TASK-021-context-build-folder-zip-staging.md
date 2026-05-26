@@ -1,6 +1,6 @@
 # TASK-021 - Context Build Folder/ZIP Staging
 
-Status: planned
+Status: implemented
 
 ## Goal
 
@@ -46,4 +46,34 @@ uploads.
 uv run --cache-dir .uv-cache pytest tests\api\test_context_build_runs.py tests\api\test_context_build_staging.py -q
 corepack pnpm --filter @context-builder/web build
 uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
+```
+
+## Implementation Notes
+
+- Added `POST /workspaces/{workspace_id}/context-build-runs/staged-uploads`
+  for folder, multi-file, and zip staging.
+- Backend preflight remains authoritative and resolves source-pack candidates
+  from `staged_upload_id`.
+- Wizard now stages real file bytes before preflight and does not send server
+  paths from the browser.
+- Compile resolves staged source packs from the staging root and returns a
+  public `staged_upload:<id>/<file>` output reference instead of a private path.
+- Tests cover folder staging, zip staging, path traversal, zip slip, duplicate
+  zip entries, unreadable zip entries, upload limits, rejected source-pack
+  compile blocking, and sensitive frontend preview blockers.
+
+## Verified 2026-05-26
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\api\test_context_build_staging.py tests\api\test_context_build_runs.py -q
+# 24 passed
+
+node apps\web\scripts\test-context-build.mjs
+# passed
+
+corepack pnpm --filter @context-builder/web typecheck
+# passed
+
+npm run typecheck:python:strict-full
+# passed
 ```

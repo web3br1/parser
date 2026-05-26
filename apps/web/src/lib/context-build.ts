@@ -22,15 +22,18 @@ export type ContextBuildPreview = {
 };
 
 const SOURCE_MANIFEST_NAME = "00_source_manifest.md";
-const SUPPORTED_EXTENSIONS = new Set(["csv", "docx", "md", "pdf", "txt", "xlsx"]);
+const SUPPORTED_EXTENSIONS = new Set(["csv", "docx", "md", "pdf", "txt", "xlsx", "zip"]);
 const BLOCKED_EXTENSIONS = new Set([
   "bat",
   "cmd",
   "com",
   "dll",
+  "env",
   "exe",
+  "key",
   "js",
   "msi",
+  "pem",
   "ps1",
   "scr",
   "sh"
@@ -69,6 +72,7 @@ export function detectContextBuildPreview(
       blockedCount: blockedFiles.length,
       fileCount: files.length,
       hasSourceManifest,
+      hasZip: (extensionCounts.zip ?? 0) > 0,
       supportedCount: supportedFiles.length
     }),
     fileCount: files.length,
@@ -83,12 +87,13 @@ function previewMode(input: {
   blockedCount: number;
   fileCount: number;
   hasSourceManifest: boolean;
+  hasZip: boolean;
   supportedCount: number;
 }): ContextBuildPreviewMode {
   if (input.fileCount === 0 || input.blockedCount > 0 || input.supportedCount === 0) {
     return "invalid_preview";
   }
-  if (input.hasSourceManifest) {
+  if (input.hasSourceManifest || (input.hasZip && input.fileCount === 1)) {
     return "source_pack_candidate_preview";
   }
   if (input.supportedCount === 1) {

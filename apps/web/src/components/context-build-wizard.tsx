@@ -21,9 +21,11 @@ import {
   apiMessage,
   compileContextBuildRun,
   preflightContextBuildRun,
+  stageContextBuildUpload,
   type ContextBuildCompileResponse,
   type ContextBuildFileMetadata,
-  type ContextBuildPreflightResponse
+  type ContextBuildPreflightResponse,
+  type ContextBuildStagedUploadResponse
 } from "@/lib/api";
 import {
   detectContextBuildPreview,
@@ -36,7 +38,7 @@ type ContextBuildWizardProps = {
   token: string;
 };
 
-type BusyAction = "preflight" | "compile" | null;
+type BusyAction = "staging" | "preflight" | "compile" | null;
 
 const steps = [
   "Select input",
@@ -50,6 +52,7 @@ const steps = [
 
 export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardProps) {
   const [files, setFiles] = useState<File[]>([]);
+  const [stagedUpload, setStagedUpload] = useState<ContextBuildStagedUploadResponse | null>(null);
   const [preflight, setPreflight] = useState<ContextBuildPreflightResponse | null>(null);
   const [compileResult, setCompileResult] = useState<ContextBuildCompileResponse | null>(null);
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
@@ -71,13 +74,20 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
     if (!canPreflight) {
       return;
     }
-    setBusyAction("preflight");
+    setBusyAction("staging");
     setError(null);
+    setStagedUpload(null);
+    setPreflight(null);
     setCompileResult(null);
     try {
+      const staged = await stageContextBuildUpload(workspaceId, token, files);
+      setStagedUpload(staged);
+      setBusyAction("preflight");
       const result = await preflightContextBuildRun(workspaceId, token, {
-        files: metadata,
-        input_fingerprint: fingerprint
+        staged_upload_id: staged.staged_upload_id,
+        input_fingerprint: staged.input_fingerprint,
+        input_hash: staged.input_hash,
+        persist: true
       });
       setPreflight(result);
     } catch (caught) {
@@ -116,7 +126,7 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
       </div>
 
       {error ? <AlertMessage tone="error">{error}</AlertMessage> : null}
-      <ReadinessNotice preflight={preflight} compileResult={compileResult} />
+      <ReadinessNotice stagedUpload={stagedUpload} preflight={preflight} compileResult={compileResult} />
 
       <div className="grid gap-4 xl:grid-cols-[380px_1fr]">
         <div className="space-y-4">
@@ -129,7 +139,7 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
                   Select documents or a full source pack folder
                 </span>
                 <span className="mt-1 text-xs text-slate-500">
-                  This preflight sends file metadata first; backend staging comes next.
+                  Selection uploads real file bytes for staging before backend preflight.
                 </span>
                 <input
                   className="sr-only"
@@ -137,6 +147,7 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
                   multiple
                   onChange={(event) => {
                     setFiles(Array.from(event.target.files ?? []));
+                    setStagedUpload(null);
                     setPreflight(null);
                     setCompileResult(null);
                     setError(null);
@@ -153,6 +164,7 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
                   multiple
                   onChange={(event) => {
                     setFiles(Array.from(event.target.files ?? []));
+                    setStagedUpload(null);
                     setPreflight(null);
                     setCompileResult(null);
                     setError(null);
@@ -173,12 +185,16 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
                 disabled={!canPreflight}
                 className="inline-flex h-9 w-full items-center justify-center gap-2 rounded bg-slate-950 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {busyAction === "preflight" ? (
+                {busyAction === "staging" || busyAction === "preflight" ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
                   <Upload className="h-4 w-4" aria-hidden="true" />
                 )}
-                Preflight Selection
+                {busyAction === "staging"
+                  ? "Staging Files"
+                  : busyAction === "preflight"
+                    ? "Running Preflight"
+                    : "Stage and Preflight"}
               </button>
             </div>
           </Panel>
@@ -209,11 +225,15 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
             <div className="grid gap-4 p-4 lg:grid-cols-2">
               <DetectionCard title="Frontend preview" status={preview.mode}>
                 <Detail label="Manifest" value={preview.hasSourceManifest ? "found" : "not found"} />
-                <Detail label="Input fingerprint" value={fingerprint || "waiting for files"} />
+                <Detail
+                  label="Input fingerprint"
+                  value={stagedUpload?.input_fingerprint ?? (fingerprint || "waiting for files")}
+                />
               </DetectionCard>
               <DetectionCard title="Backend preflight" status={preflight?.input_mode ?? "not_run"}>
                 <Detail label="Recommended action" value={preflight?.recommended_action ?? "not available"} />
                 <Detail label="Run ID" value={preflight?.run_id ?? "not persisted yet"} />
+                <Detail label="Staged upload" value={stagedUpload?.staged_upload_id ?? "not staged yet"} />
               </DetectionCard>
             </div>
           </Panel>
@@ -253,7 +273,12 @@ export function ContextBuildWizard({ workspaceId, token }: ContextBuildWizardPro
             </div>
           </Panel>
 
-          <IssuesPanel preflight={preflight} compileResult={compileResult} preview={preview} />
+          <IssuesPanel
+            stagedUpload={stagedUpload}
+            preflight={preflight}
+            compileResult={compileResult}
+            preview={preview}
+          />
         </div>
       </div>
     </section>
@@ -349,14 +374,17 @@ function stepStatus(
 }
 
 function ReadinessNotice({
+  stagedUpload,
   preflight,
   compileResult
 }: {
+  stagedUpload: ContextBuildStagedUploadResponse | null;
   preflight: ContextBuildPreflightResponse | null;
   compileResult: ContextBuildCompileResponse | null;
 }) {
-  const warnings = compileResult?.warnings ?? preflight?.warnings ?? [];
-  const blockingReasons = compileResult?.blocking_reasons ?? preflight?.blocking_reasons ?? [];
+  const warnings = compileResult?.warnings ?? preflight?.warnings ?? stagedUpload?.warnings ?? [];
+  const blockingReasons =
+    compileResult?.blocking_reasons ?? preflight?.blocking_reasons ?? stagedUpload?.blocking_reasons ?? [];
 
   if (blockingReasons.length > 0) {
     return <AlertMessage tone="error">{blockingReasons[0]}</AlertMessage>;
@@ -367,7 +395,10 @@ function ReadinessNotice({
   if (compileResult) {
     return <AlertMessage tone="success">Context bundle generated and ready for import.</AlertMessage>;
   }
-  return <AlertMessage tone="info">Backend preflight is authoritative; frontend detection is only a preview.</AlertMessage>;
+  if (stagedUpload && !preflight) {
+    return <AlertMessage tone="info">Files staged. Backend preflight is running against staged content.</AlertMessage>;
+  }
+  return <AlertMessage tone="info">Files will be staged with real bytes before backend preflight.</AlertMessage>;
 }
 
 function StepRow({
@@ -441,16 +472,22 @@ function ExtensionList({ preview }: { preview: ContextBuildPreview }) {
 }
 
 function IssuesPanel({
+  stagedUpload,
   preflight,
   compileResult,
   preview
 }: {
+  stagedUpload: ContextBuildStagedUploadResponse | null;
   preflight: ContextBuildPreflightResponse | null;
   compileResult: ContextBuildCompileResponse | null;
   preview: ContextBuildPreview;
 }) {
-  const warnings = compileResult?.warnings ?? preflight?.warnings ?? [];
-  const blockingReasons = compileResult?.blocking_reasons ?? preflight?.blocking_reasons ?? preview.blockedFiles;
+  const warnings = compileResult?.warnings ?? preflight?.warnings ?? stagedUpload?.warnings ?? [];
+  const blockingReasons =
+    compileResult?.blocking_reasons ??
+    preflight?.blocking_reasons ??
+    stagedUpload?.blocking_reasons ??
+    preview.blockedFiles;
 
   return (
     <Panel>

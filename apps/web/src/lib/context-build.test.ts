@@ -36,6 +36,11 @@ if (spreadsheet.supportedFileCount !== 1 || spreadsheet.extensionCounts.xlsx !==
   throw new Error("XLSX files should be supported by the optimistic preview.");
 }
 
+const zipSourcePack = expectMode([file("source-pack.zip", 2048)], "source_pack_candidate_preview");
+if (zipSourcePack.supportedFileCount !== 1 || zipSourcePack.extensionCounts.zip !== 1) {
+  throw new Error("ZIP source packs should be supported by the optimistic preview.");
+}
+
 const batch = expectMode(
   [file("policy.md"), file("pricing.csv"), file("faq.txt")],
   "loose_batch_preview"
@@ -63,6 +68,18 @@ if (!sourcePack.hasSourceManifest) {
 const blocked = expectMode([file("payload.exe")], "invalid_preview");
 if (!blocked.blockedFiles.includes("payload.exe")) {
   throw new Error("Blocked extensions should be reported by file name.");
+}
+
+const sensitive = expectMode(
+  [file(".env"), file("private.pem"), file("signing.key")],
+  "invalid_preview"
+);
+if (
+  !sensitive.blockedFiles.includes(".env") ||
+  !sensitive.blockedFiles.includes("private.pem") ||
+  !sensitive.blockedFiles.includes("signing.key")
+) {
+  throw new Error("Sensitive local config and key files should be reported as blocked.");
 }
 
 const mixed = expectMode([file("policy.md"), file("payload.exe")], "invalid_preview");

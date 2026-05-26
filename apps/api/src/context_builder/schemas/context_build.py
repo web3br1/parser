@@ -41,7 +41,9 @@ class ContextBuildPreflightRequest(BaseModel):
 
     files: list[ContextBuildFileMetadata] = Field(default_factory=list)
     source_dir: str | None = None
+    staged_upload_id: str | None = None
     input_fingerprint: str | None = None
+    input_hash: str | None = None
     persist: bool = False
 
 
@@ -93,6 +95,17 @@ class ContextBuildPreflightResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
     blocking_reasons: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ContextBuildStagedUploadResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    staged_upload_id: str
+    input_hash: str
+    input_fingerprint: str
+    files: list[ContextBuildFileMetadata] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    blocking_reasons: list[str] = Field(default_factory=list)
 
 
 class ContextBuildRunResponse(BaseModel):

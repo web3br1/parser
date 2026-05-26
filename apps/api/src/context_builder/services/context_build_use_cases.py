@@ -25,6 +25,10 @@ from context_builder.services.context_build_runs import (
     update_context_build_run_compiled,
     update_context_build_run_failed,
 )
+from context_builder.services.context_build_staging import (
+    StagedUpload,
+    resolve_staged_upload,
+)
 from context_builder.services.source_pack_import_runs import source_pack_input_hash
 from context_builder.services.source_pack_preflight import inspect_source_pack_upload
 
@@ -38,7 +42,7 @@ def preflight_context_build_run(
     actor_user_id: str | None,
     payload: ContextBuildPreflightRequest,
 ) -> ContextBuildPreflightResponse:
-    response = _detect(payload)
+    response = _detect(workspace_id, payload)
     if not payload.persist:
         return response
     run = create_context_build_run(
@@ -55,6 +59,7 @@ def preflight_context_build_run(
             else None,
             source_pack_id=response.source_pack_id,
             source_pack_version=response.source_pack_version,
+            staged_upload_id=payload.staged_upload_id,
             source_count=response.counts.get("file_count", 0),
             file_counts=response.counts,
             missing_files=response.missing_files,
@@ -107,10 +112,22 @@ def compile_context_build_run(
             status_code=409,
             detail={"code": "compile_not_available_for_input_mode"},
         )
-    if not run.source_dir:
+    if run.status != "preflighted" or run.recommended_action != "compile_as_source_pack":
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "context_build_run_not_compilable"},
+        )
+    if run.staged_upload_id:
+        staged = resolve_staged_upload(
+            workspace_id=workspace_id,
+            staged_upload_id=run.staged_upload_id,
+        )
+        source_dir = staged.source_root
+    elif run.source_dir:
+        source_dir = resolve_allowed_source_dir(run.source_dir)
+    else:
         raise HTTPException(status_code=409, detail={"code": "source_dir_required"})
 
-    source_dir = resolve_allowed_source_dir(run.source_dir)
     try:
         bundle = compile_source_pack(source_dir)
         output_path = source_dir / f"{source_dir.name}.context_bundle.v1.json"
@@ -121,7 +138,7 @@ def compile_context_build_run(
             run_id=run_id,
             bundle_hash=bundle.integrity.bundle_hash,
             context_version=bundle.context_version,
-            output_path=str(write_result.path),
+            output_path=_public_output_path(run=run, output_path=write_result.path),
             readiness_status=bundle.readiness.status,
             readiness_score=bundle.readiness.score,
             warnings=bundle.readiness.warnings,
@@ -138,7 +155,16 @@ def compile_context_build_run(
         raise
 
 
-def _detect(payload: ContextBuildPreflightRequest) -> ContextBuildPreflightResponse:
+def _detect(
+    workspace_id: str,
+    payload: ContextBuildPreflightRequest,
+) -> ContextBuildPreflightResponse:
+    if payload.staged_upload_id:
+        staged = resolve_staged_upload(
+            workspace_id=workspace_id,
+            staged_upload_id=payload.staged_upload_id,
+        )
+        return _detect_staged_upload(staged)
     if payload.source_dir:
         source_dir = resolve_allowed_source_dir(payload.source_dir)
         source_pack = inspect_source_pack_upload(source_dir)
@@ -185,6 +211,70 @@ def _detect(payload: ContextBuildPreflightRequest) -> ContextBuildPreflightRespo
             input_fingerprint=payload.input_fingerprint,
         )
     return _detect_files(payload.files, input_fingerprint=payload.input_fingerprint)
+
+
+def _detect_staged_upload(staged: StagedUpload) -> ContextBuildPreflightResponse:
+    source_pack = inspect_source_pack_upload(staged.source_root)
+    if source_pack.is_source_pack:
+        status: ContextBuildStatus = (
+            "preflighted" if source_pack.recommended_action != "reject" else "rejected"
+        )
+        blocking_reasons = _source_pack_blocking_reasons(source_pack)
+        return ContextBuildPreflightResponse(
+            status=status,
+            input_mode="source_pack",
+            recommended_action=source_pack.recommended_action,
+            input_fingerprint=staged.input_fingerprint,
+            input_hash=staged.input_hash,
+            source_dir=None,
+            source_pack_id=source_pack.source_pack_id,
+            source_pack_version=source_pack.source_pack_version,
+            counts={
+                "file_count": source_pack.numbered_source_count,
+                "csv_count": source_pack.csv_count,
+                "markdown_count": source_pack.markdown_count,
+                "manifest_document_count": source_pack.manifest_document_count,
+                "official_reference_count": source_pack.official_reference_count,
+            },
+            missing_files=source_pack.missing_files,
+            extra_files=source_pack.extra_files,
+            errors=source_pack.errors,
+            blocking_reasons=blocking_reasons,
+            metadata={
+                "is_source_pack": True,
+                "preflight_status": source_pack.status,
+                "readme_present": source_pack.readme_present,
+                "language": source_pack.language,
+                "publication_status": source_pack.publication_status,
+                "staged_upload_id": staged.staged_upload_id,
+            },
+        )
+    return _detect_files(
+        staged.files,
+        input_fingerprint=staged.input_fingerprint,
+    ).model_copy(
+        update={
+            "input_hash": staged.input_hash,
+            "metadata": {"is_source_pack": False, "staged_upload_id": staged.staged_upload_id},
+        }
+    )
+
+
+def _source_pack_blocking_reasons(source_pack: Any) -> list[str]:
+    reasons = list(source_pack.errors)
+    if source_pack.missing_files:
+        reasons.append("missing_files")
+    if source_pack.extra_files:
+        reasons.append("extra_files")
+    if source_pack.recommended_action == "reject" and not reasons:
+        reasons.append("source_pack_rejected")
+    return reasons
+
+
+def _public_output_path(*, run: ContextBuildRunResponse, output_path: Path) -> str:
+    if run.staged_upload_id:
+        return f"staged_upload:{run.staged_upload_id}/{output_path.name}"
+    return str(output_path)
 
 
 def resolve_allowed_source_dir(source_dir: str) -> Path:

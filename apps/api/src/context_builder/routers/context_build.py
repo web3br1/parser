@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from context_builder.dependencies import (
     get_supabase_service_for_backend_only,
@@ -15,11 +15,13 @@ from context_builder.schemas.context_build import (
     ContextBuildPreflightResponse,
     ContextBuildRunCreate,
     ContextBuildRunResponse,
+    ContextBuildStagedUploadResponse,
 )
 from context_builder.services.context_build_runs import (
     get_context_build_run,
     list_context_build_runs,
 )
+from context_builder.services.context_build_staging import stage_context_build_upload
 from context_builder.services.context_build_use_cases import (
     compile_context_build_run,
     create_context_build_run_from_request,
@@ -28,6 +30,23 @@ from context_builder.services.context_build_use_cases import (
 from supabase import Client
 
 router = APIRouter()
+
+
+@router.post(
+    "/staged-uploads",
+    response_model=ContextBuildStagedUploadResponse,
+    status_code=201,
+)
+async def create_context_build_staged_upload(
+    files: list[UploadFile] = File(...),
+    relative_paths: str | None = Form(default=None),
+    membership: dict[str, Any] = Depends(require_upload_permission),
+) -> ContextBuildStagedUploadResponse:
+    return await stage_context_build_upload(
+        workspace_id=membership["workspace_id"],
+        uploads=files,
+        relative_paths=relative_paths,
+    )
 
 
 @router.post("/preflight", response_model=ContextBuildPreflightResponse)
