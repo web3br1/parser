@@ -264,6 +264,32 @@ def test_full_skip_flags_remove_source_pack_compile_and_runtime_import(
     ]
 
 
+def test_full_dry_run_source_pack_compile_uses_official_compiler_check(
+    real_smoke: Any,
+) -> None:
+    args = real_smoke.parse_args(
+        [
+            "--target",
+            "local",
+            "--full",
+            "--source-pack-dir",
+            r"C:\tmp\context-builder-sources\compounding-pharmacy-gold",
+            "--skip-runtime-import",
+            "--dry-run",
+        ]
+    )
+
+    phases = real_smoke.build_phases(args, {})
+
+    source_pack_phases = [phase for phase in phases if phase.name == "source-pack-compile"]
+    assert len(source_pack_phases) == 1
+    command = command_text(source_pack_phases[0].command).replace("\\", "/")
+    assert "scripts/source_pack/compile_context_bundle.py" in command
+    assert "--source-dir" in command
+    assert "compounding-pharmacy-gold" in command
+    assert "--check" in command
+
+
 def test_first_failure_stops_later_phases_by_default(
     real_smoke: Any,
     fake_health: list[str],
