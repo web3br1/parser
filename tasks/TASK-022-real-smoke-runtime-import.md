@@ -1,6 +1,6 @@
 # TASK-022 - Real Smoke + Runtime Import Proof
 
-Status: planned
+Status: implementation planned; pending real environment execution.
 
 ## Goal
 
@@ -38,3 +38,22 @@ uv run --cache-dir .uv-cache python scripts\source_pack\compile_context_bundle.p
 
 The runtime import command belongs to the consumer runtime repo and must be
 recorded here after it is selected.
+
+## Execution Checklist
+
+- [ ] Apply migrations through `047`, including
+  `046_source_pack_import_runs.sql` and `047_context_build_runs.sql`.
+- [ ] Confirm RLS/grants for `context_build_runs` and
+  `source_pack_import_runs` in the real environment.
+- [ ] Start Supabase, API, Redis and workers for the local runtime.
+- [ ] Run the minimal smoke:
+  `uv run --cache-dir .uv-cache python scripts\smoke\run_real_smoke.py --target local --json-report .run\smoke-local-minimal.json`.
+- [ ] Set `CONTEXT_BUNDLE_RUNTIME_IMPORT_COMMAND` to the consumer runtime
+  import command, keeping the `{bundle}` placeholder and excluding secrets.
+- [ ] Run the full smoke with runtime import proof:
+  `uv run --cache-dir .uv-cache python scripts\smoke\run_real_smoke.py --target local --full --json-report .run\smoke-local-full.json`.
+- [ ] Compile the compounding pharmacy gold source pack with `--check`.
+- [ ] Verify deterministic bundle hash across repeated runs.
+- [ ] Verify runtime answers cite evidence and respect blockers/warnings.
+- [ ] Save smoke output with date, commit SHA and environment name, without
+  secrets.
