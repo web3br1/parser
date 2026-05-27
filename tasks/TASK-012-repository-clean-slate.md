@@ -111,10 +111,20 @@ No destructive cleanup has been executed.
    **Conclusion:** nothing in the stash is worth applying or converting to a task.
    **Pending action:** `git stash drop stash@{0}` — awaiting explicit user approval.
 
-3. **TASK-012C - Worktree Retirement**
-   - Decide whether `C:/tmp/parser-context-bundle-export-v1` can be removed.
-   - Keep `C:/tmp/parser-sdd-clean-integration` only if it still has comparison value after PR merge.
-   - Acceptance: remaining worktrees have clear purpose.
+3. **TASK-012C - Worktree Retirement** ✅ complete — 2026-05-27
+
+   Analysis:
+   - `codex-sdd-clean-integration` (`5372e17`): 0 unique commits — pure ancestor of integration branch (merge-base = HEAD of sdd-clean). No remote tracking ref.
+   - `codex-context-bundle-export-v1` (`be89225`): 1 unique commit (`feat: add context bundle export`, +1093 lines). All 5 key files already present in integration branch (`context_bundle.py` router/schema/service, `CONTEXT_BUNDLE.md`, `tests/api/test_context_bundle.py`). No remote tracking ref.
+
+   Actions executed (user-approved):
+   - `git worktree remove C:/tmp/parser-sdd-clean-integration` — deregistered from git (dir removed via `rm -rf` after Windows long-path error)
+   - `git worktree remove C:/tmp/parser-context-bundle-export-v1` — removed
+   - `git branch -d codex-sdd-clean-integration` — deleted
+   - `git branch -D codex-context-bundle-export-v1` — force-deleted (1 non-merged commit, content confirmed in integration)
+
+   Result: `git worktree list` shows only main checkout. `/c/tmp/parser-sdd-*` dirs gone.
+   Note: `/c/tmp/parser-sdd-schema-review-pytest` is a pytest temp dir (no `.git`), unrelated.
 
 4. **TASK-012D - Explicit Cleanup Execution**
    - Run only approved cleanup commands.
