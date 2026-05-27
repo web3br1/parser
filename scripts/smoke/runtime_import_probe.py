@@ -169,6 +169,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             stderr_tail=sanitize_text(tail(ensure_text(exc.stderr)), env),
             error=f"Timed out after {args.timeout_seconds:g}s",
         )
+    except FileNotFoundError:
+        duration = time.perf_counter() - started
+        report = RuntimeImportReport(
+            status="failed",
+            started_at=started_at,
+            finished_at=utc_now(),
+            command=[sanitize_text(part, env) for part in command],
+            bundle_path=sanitize_text(args.bundle_path, env),
+            returncode=None,
+            duration_seconds=round(duration, 3),
+            stdout_tail="",
+            stderr_tail="",
+            error="runtime_import_command_not_found",
+        )
 
     if args.json_report:
         write_report(args.json_report, report, env)

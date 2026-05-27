@@ -173,6 +173,33 @@ def test_failed_command_returns_1_and_records_returncode(
     assert report["error"] is None
 
 
+def test_missing_executable_returns_1_and_writes_report(
+    probe: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "runtime-import.json"
+
+    def fake_run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise FileNotFoundError(command[0])
+
+    monkeypatch.setattr(probe.subprocess, "run", fake_run)
+
+    code = run_cli(
+        probe,
+        ["--command", "missing-runtime-importer --bundle {bundle}", "--json-report", str(report_path)],
+    )
+
+    assert code == 1
+    report = read_report(report_path)
+    assert report["status"] == "failed"
+    assert report["returncode"] is None
+    assert report["stdout_tail"] == ""
+    assert report["stderr_tail"] == ""
+    assert report["command"][0] == "missing-runtime-importer"
+    assert report["error"] == "runtime_import_command_not_found"
+
+
 def test_malformed_quote_command_returns_2_and_writes_invalid_error(
     probe: Any,
     tmp_path: Path,
