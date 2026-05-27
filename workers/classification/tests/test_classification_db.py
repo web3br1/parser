@@ -17,6 +17,10 @@ class _Query:
         self.payload = payload
         return self
 
+    def insert(self, payload: dict) -> "_Query":
+        self.payload = payload
+        return self
+
     def eq(self, field: str, value: str) -> "_Query":
         return self
 
@@ -87,6 +91,32 @@ def test_claim_job_uses_status_guard(monkeypatch):
     assert client.query.payload["status"] == "running"
     assert client.query.payload["worker_id"] == "worker-a"
     assert ("status", ["queued", "retrying"]) in client.query.in_filters
+
+
+def test_log_token_usage_uses_database_cost_column(monkeypatch):
+    client = _Client()
+    monkeypatch.setattr(db, "_client", lambda: client)
+
+    db.log_token_usage(
+        workspace_id="workspace-1",
+        source_id="source-1",
+        chunk_id="chunk-1",
+        operation="classification",
+        model="model-1",
+        provider="ollama",
+        input_tokens=10,
+        output_tokens=2,
+        estimated_cost_usd=0.25,
+        job_id="job-1",
+        prompt_version="prompt-v1",
+    )
+
+    assert client.query.table_name == "token_usage_log"
+    assert client.query.payload is not None
+    assert client.query.payload["estimated_cost"] == 0.25
+    assert "estimated_cost_usd" not in client.query.payload
+    assert client.query.payload["job_id"] == "job-1"
+    assert client.query.payload["prompt_version"] == "prompt-v1"
 
 
 def test_finalize_source_state_calls_rpc(monkeypatch):

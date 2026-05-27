@@ -26,3 +26,16 @@ def test_create_classification_celery_app_uses_dedicated_queue_and_broker_overri
     assert app.conf.task_default_queue == "classification"
     assert "worker_classification.tasks" in app.conf.imports
     assert app.conf.broker_transport_options["data_folder_in"] == str(broker_dir)
+
+
+def test_create_classification_celery_app_uses_worker_runtime_env(monkeypatch):
+    monkeypatch.delenv("CELERY_TASK_ALWAYS_EAGER", raising=False)
+    monkeypatch.setenv("CLASSIFICATION_WORKER_CONCURRENCY", "1")
+    monkeypatch.setenv("CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS", "120")
+    monkeypatch.setenv("CLASSIFICATION_TASK_TIME_LIMIT_SECONDS", "150")
+
+    app = create_celery_app()
+
+    assert app.conf.worker_concurrency == 1
+    assert app.conf.task_soft_time_limit == 120
+    assert app.conf.task_time_limit == 150

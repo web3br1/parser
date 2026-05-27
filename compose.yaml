@@ -92,7 +92,6 @@ services:
         "worker",
         "--loglevel=INFO",
         "--queues=extraction",
-        "--concurrency=2",
         "--hostname=extraction@%h",
       ]
 

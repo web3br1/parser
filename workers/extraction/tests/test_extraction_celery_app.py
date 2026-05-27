@@ -26,3 +26,16 @@ def test_create_extraction_celery_app_uses_dedicated_queue_and_broker_override(
     assert app.conf.task_default_queue == "extraction"
     assert "worker_extraction.tasks" in app.conf.imports
     assert app.conf.broker_transport_options["data_folder_in"] == str(broker_dir)
+
+
+def test_create_extraction_celery_app_uses_worker_runtime_env(monkeypatch):
+    monkeypatch.delenv("CELERY_TASK_ALWAYS_EAGER", raising=False)
+    monkeypatch.setenv("EXTRACTION_WORKER_CONCURRENCY", "1")
+    monkeypatch.setenv("EXTRACTION_TASK_SOFT_TIME_LIMIT_SECONDS", "180")
+    monkeypatch.setenv("EXTRACTION_TASK_TIME_LIMIT_SECONDS", "240")
+
+    app = create_celery_app()
+
+    assert app.conf.worker_concurrency == 1
+    assert app.conf.task_soft_time_limit == 180
+    assert app.conf.task_time_limit == 240

@@ -8,7 +8,11 @@ from celery import Task
 from celery.exceptions import Retry
 
 from worker_classification import db
-from worker_classification.celery_app import app
+from worker_classification.celery_app import (
+    app,
+    classification_task_soft_time_limit,
+    classification_task_time_limit,
+)
 from worker_classification.classifier import aggregate_chunk_status, classify_chunk
 from worker_classification.extraction_queue import (
     build_extraction_job_payload,
@@ -39,8 +43,8 @@ def _idempotency_key(
     max_retries=2,
     default_retry_delay=15,
     acks_late=True,
-    soft_time_limit=30,
-    time_limit=45,
+    soft_time_limit=classification_task_soft_time_limit(),
+    time_limit=classification_task_time_limit(),
 )
 def classify_chunk_task(
     self: Task,

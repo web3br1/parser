@@ -9,7 +9,11 @@ from celery import Task
 from celery.exceptions import Retry
 
 from worker_extraction import db
-from worker_extraction.celery_app import app
+from worker_extraction.celery_app import (
+    app,
+    extraction_task_soft_time_limit,
+    extraction_task_time_limit,
+)
 from worker_extraction.evidence import (
     EvidenceSpanInput,
     build_evidence_span_input,
@@ -41,8 +45,8 @@ def _idempotency_key(
     max_retries=2,
     default_retry_delay=20,
     acks_late=True,
-    soft_time_limit=60,
-    time_limit=90,
+    soft_time_limit=extraction_task_soft_time_limit(),
+    time_limit=extraction_task_time_limit(),
 )
 def extract_fact(
     self: Task,
