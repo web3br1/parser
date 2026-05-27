@@ -79,7 +79,7 @@ No destructive cleanup has been executed.
    - Observation: `backend/` and `prototype/` are **tracked** (initial commit only, never touched again).
      Not a `.gitignore` issue — candidates for deletion in TASK-012D.
 
-2. **TASK-012B - Stash Triage** ✅ triaged — 2026-05-27, awaiting `git stash drop` approval
+2. **TASK-012B - Stash Triage** ✅ complete — 2026-05-27
    - Stash: `stash@{0}` — "archive real checkout before SDD clean integration" (35 files, ~89 KB diff)
    - Created on branch `codex-real-test-readiness` (pre-SDD); integration branch rebuilt from scratch via multi-agent SDD.
 
@@ -108,8 +108,9 @@ No destructive cleanup has been executed.
    - `docs/07-operations/SMOKE_TEST_SUPABASE.md` — superseded by `docs/operations/smoke-runbook.md`
    - `docs/07-qa/SEMIREAL_PILOT_V2_TECHNICAL_RESULTS.md` — minor edit; current version authoritative
 
-   **Conclusion:** nothing in the stash is worth applying or converting to a task.
-   **Pending action:** `git stash drop stash@{0}` — awaiting explicit user approval.
+   **Conclusion:** nothing in the stash was worth applying or converting to a task.
+   **Action executed:** `git stash drop stash@{0}` after explicit user approval.
+   **Result:** `git stash list` is empty.
 
 3. **TASK-012C - Worktree Retirement** ✅ complete — 2026-05-27
 
