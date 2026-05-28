@@ -32,6 +32,7 @@ POOLER_SQL_VARS = (
     "DATABASE_POOLER_URL",
 )
 PSQL_BIN_VARS = ("PSQL_BIN", "SUPABASE_PSQL_BIN")
+DOCKER_SQL_VARS = ("SUPABASE_DB_CONTAINER",)
 REQUIRED_BUCKET = "context-builder-private"
 REQUIRED_SCRIPTS = (
     "scripts/smoke/check_supabase_contracts.py",
@@ -82,6 +83,14 @@ def _configured_psql(env: Mapping[str, str]) -> tuple[bool, str]:
             return True, name
     if shutil.which("psql"):
         return True, "PATH"
+    return False, ""
+
+
+def _configured_docker(env: Mapping[str, str]) -> tuple[bool, str]:
+    """Return (available, container_name) for docker exec SQL access."""
+    container = env.get("SUPABASE_DB_CONTAINER", "").strip()
+    if container and shutil.which("docker"):
+        return True, container
     return False, ""
 
 
@@ -195,10 +204,27 @@ def _check_sql_access(env: Mapping[str, str]) -> Check:
             },
         )
 
+    docker_available, docker_container = _configured_docker(env)
+    if docker_available:
+        return Check(
+            "sql_access",
+            "ok",
+            f"SQL access can use docker exec into container {docker_container!r}",
+            {
+                "mode": "docker_exec",
+                "container": docker_container,
+                "variable": "SUPABASE_DB_CONTAINER",
+            },
+        )
+
     return Check(
         "sql_access",
         "fail",
-        "No SQL access path found; set psql on PATH or PSQL_BIN with a database URL, or set access token with project ref",
+        (
+            "No SQL access path found; set psql on PATH or PSQL_BIN with a database URL, "
+            "or set SUPABASE_ACCESS_TOKEN with project ref, "
+            "or set SUPABASE_DB_CONTAINER with docker available"
+        ),
         {
             "accepted_variable_groups": [
                 [*DIRECT_SQL_VARS, "psql"],
@@ -207,10 +233,12 @@ def _check_sql_access(env: Mapping[str, str]) -> Check:
                 [*POOLER_SQL_VARS, *PSQL_BIN_VARS],
                 ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF"],
                 ["SUPABASE_ACCESS_TOKEN", "SUPABASE_URL"],
+                [*DOCKER_SQL_VARS, "docker"],
             ],
             "db_url_present": bool(direct or pooler),
             "psql_available": has_psql,
             "psql_bin_variables": list(PSQL_BIN_VARS),
+            "docker_available": bool(shutil.which("docker")),
         },
     )
 

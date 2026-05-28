@@ -247,6 +247,50 @@ def test_contract_check_uses_configured_psql_bin(
     assert calls[0][0] == str(psql_bin)
 
 
+def test_contract_check_uses_docker_exec_when_psql_is_unavailable(
+    check_contracts,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    class Completed:
+        returncode = 0
+        stdout = "ok\n"
+        stderr = ""
+
+    def fake_run(args: list[str], **_kwargs: object) -> Completed:
+        calls.append(args)
+        return Completed()
+
+    monkeypatch.setattr(
+        check_contracts.shutil,
+        "which",
+        lambda name: "docker.exe" if name == "docker" else None,
+    )
+    monkeypatch.setattr(check_contracts.subprocess, "run", fake_run)
+    check_contracts.SUPABASE_DB_URL = ""
+    check_contracts.SUPABASE_POOLER_DB_URL = ""
+    check_contracts.PSQL_BIN = ""
+    check_contracts.SUPABASE_DB_CONTAINER = "supabase_db_Parser"
+
+    assert check_contracts.run_sql("select 1") == ["ok"]
+    assert calls[0] == [
+        "docker.exe",
+        "exec",
+        "supabase_db_Parser",
+        "psql",
+        "--username",
+        "postgres",
+        "--dbname",
+        "postgres",
+        "--no-align",
+        "--tuples-only",
+        "--quiet",
+        "--command",
+        "select 1",
+    ]
+
+
 def test_contract_check_rejects_client_write_privileges(
     check_contracts,
     monkeypatch: pytest.MonkeyPatch,

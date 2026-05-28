@@ -36,6 +36,9 @@ SUPABASE_POOLER_DB_URL = (
 PSQL_BIN = os.getenv("PSQL_BIN") or os.getenv("SUPABASE_PSQL_BIN") or ""
 SUPABASE_ACCESS_TOKEN = os.getenv("SUPABASE_ACCESS_TOKEN", "")
 SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
+# Local Docker Supabase fallback: docker exec <container> psql ...
+# Set to the Postgres container name, e.g. supabase_db_Parser
+SUPABASE_DB_CONTAINER = os.getenv("SUPABASE_DB_CONTAINER", "")
 WORKSPACE_STORAGE_BUCKET = os.getenv("WORKSPACE_STORAGE_BUCKET", "context-builder-private")
 
 EXPECTED_TABLES = [
@@ -174,12 +177,15 @@ def require_env() -> None:
     ]
     can_run_sql_with_psql = bool(_database_urls() and _psql_command())
     can_run_sql_with_management_api = bool(SUPABASE_ACCESS_TOKEN and _project_ref())
-    if not (can_run_sql_with_psql or can_run_sql_with_management_api):
+    can_run_sql_with_docker_exec = _use_docker_exec()
+    if not (can_run_sql_with_psql or can_run_sql_with_management_api or can_run_sql_with_docker_exec):
         missing.append(
             "SQL access: install psql or set PSQL_BIN/SUPABASE_PSQL_BIN and "
             "SUPABASE_DB_URL/DATABASE_URL (or SUPABASE_POOLER_DB_URL for IPv4/pooler), "
             "or set SUPABASE_ACCESS_TOKEN with SUPABASE_PROJECT_REF/project ref in "
-            "SUPABASE_URL for Management API fallback"
+            "SUPABASE_URL for Management API fallback, "
+            "or set SUPABASE_DB_CONTAINER to the Postgres Docker container name "
+            "(e.g. supabase_db_Parser) with docker available on PATH"
         )
     if missing:
         fail(f"Missing required env: {', '.join(missing)}")
@@ -208,8 +214,16 @@ def _psql_command() -> str:
     return shutil.which("psql") or ""
 
 
+def _docker_command() -> str:
+    return shutil.which("docker") or ""
+
+
 def _use_psql() -> bool:
     return bool(_database_urls() and _psql_command())
+
+
+def _use_docker_exec() -> bool:
+    return bool(SUPABASE_DB_CONTAINER and _docker_command())
 
 
 def run_sql(sql: str) -> list[str]:
@@ -234,6 +248,31 @@ def run_sql(sql: str) -> list[str]:
                 return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
             last_error = completed.stderr.strip()
         fail(f"psql failed for all configured database URLs: {last_error}")
+
+    if _use_docker_exec():
+        completed = subprocess.run(
+            [
+                _docker_command(),
+                "exec",
+                SUPABASE_DB_CONTAINER,
+                "psql",
+                "--username",
+                "postgres",
+                "--dbname",
+                "postgres",
+                "--no-align",
+                "--tuples-only",
+                "--quiet",
+                "--command",
+                sql,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode == 0:
+            return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+        fail(f"docker exec psql failed for container {SUPABASE_DB_CONTAINER!r}: {completed.stderr.strip()}")
 
     response = httpx.post(
         f"https://api.supabase.com/v1/projects/{_project_ref()}/database/query",

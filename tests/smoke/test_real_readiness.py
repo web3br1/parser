@@ -171,6 +171,25 @@ def test_db_url_without_psql_or_access_token_is_not_actionable(tmp_path: Path) -
     assert "SUPABASE_DB_URL" in rendered
 
 
+def test_local_supabase_db_container_makes_sql_access_actionable(tmp_path: Path) -> None:
+    module = load_real_readiness()
+    module.shutil.which = lambda name: "docker" if name == "docker" else None
+    env_file = write_ready_project(
+        tmp_path,
+        env_overrides={
+            "SUPABASE_DB_URL": None,
+            "SUPABASE_DB_CONTAINER": "supabase_db_Parser",
+        },
+    )
+
+    checks, report = collect_report(module, tmp_path, env_file)
+    sql_access = next(check for check in checks if check.name == "sql_access")
+
+    assert report["status"] == "passed"
+    assert sql_access.details["mode"] == "docker_exec"
+    assert sql_access.details["container"] == "supabase_db_Parser"
+
+
 def test_configured_psql_bin_makes_db_url_actionable(tmp_path: Path) -> None:
     module = load_real_readiness()
     module.shutil.which = lambda _name: None
