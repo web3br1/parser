@@ -76,8 +76,8 @@ No destructive cleanup has been executed.
      - Workers: `control/*.exchange` ✓
      - Smoke: `codex-smoke-basetemp/` ✓
    - No `.gitignore` changes needed.
-   - Observation: `backend/` and `prototype/` are **tracked** (initial commit only, never touched again).
-     Not a `.gitignore` issue — candidates for deletion in TASK-012D.
+   - Observation: `backend/` and `prototype/` were **tracked** (initial commit only, never touched again).
+     Removed via `git rm -r` in TASK-012D (see below).
 
 2. **TASK-012B - Stash Triage** ✅ complete — 2026-05-27
    - Stash: `stash@{0}` — "archive real checkout before SDD clean integration" (35 files, ~89 KB diff)
@@ -127,11 +127,13 @@ No destructive cleanup has been executed.
    Result: `git worktree list` shows only main checkout. `/c/tmp/parser-sdd-*` dirs gone.
    Note: `/c/tmp/parser-sdd-schema-review-pytest` is a pytest temp dir (no `.git`), unrelated.
 
-4. **TASK-012D - Physical Artifact Cleanup** — skipped by choice
-   - Candidates identified: `.venv/`, `node_modules/`, `.uv-cache/`, `.run/`, `.mypy_cache/`, `.ruff_cache/`, `.pytest_cache/`, `codex-smoke-basetemp/`
-   - Decision: all artifacts are git-ignored and regenerable (`uv sync`, `pnpm install`). Physical cleanup would free ~1–2 GB disk space but adds rebuild cost with no structural benefit.
-   - Also identified: `backend/` and `prototype/` are tracked legacy dirs (initial commit only). Candidates for `git rm` in a future task if confirmed dead code.
-   - No action taken. Repo is structurally clean without it.
+4. **TASK-012D - Explicit Cleanup Execution** ✅ complete — 2026-05-28
+   - `git rm -r backend/ prototype/` — executed after user confirmation.
+     - `backend/`: 4 files (README.md, app/__init__.py, schemas/__init__.py, schemas/mvp.py) — legacy Pydantic MVP schemas, superseded by packages/schema_registry, packages/normalizers, apps/api and workers.
+     - `prototype/`: 2 files (README.md, wireframe.html) — static HTML wireframe, superseded by apps/web.
+   - `README.md`: removed table rows referencing removed dirs.
+   - `pyproject.toml`: removed `exclude = ["prototype"]` (mypy exclude, no longer needed).
+   - Physical artifact cleanup (`.venv/`, `node_modules/`, caches): skipped by choice — git-ignored, regenerable on demand.
 
 ## Final State — 2026-05-27
 

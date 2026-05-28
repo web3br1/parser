@@ -40,9 +40,7 @@ Leitura rapida:
 | `docs/operations` | Runtime local, Docker local e smoke runbooks |
 | `tasks` | Plano incremental de entrega e limpeza |
 | `examples` | Exemplos JSON esperados |
-| `prototype` | Wireframe HTML |
 | `supabase` | Migrations iniciais PostgreSQL/Supabase |
-| `backend` | Contratos Python iniciais: Pydantic schemas e normalização determinística |
 
 ## Artefato principal
 
