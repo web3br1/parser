@@ -6,7 +6,7 @@ final vive em outro projeto.
 
 Escopo canonico:
 
-- migrations `000` a `045` aplicadas no projeto Supabase dev
+- migrations `000` a `047` aplicadas no projeto Supabase dev
 - bucket privado `context-builder-private`
 - API, Redis e workers iniciados por Docker ou outro runtime externo ao
   orquestrador de smoke
@@ -87,6 +87,8 @@ Migrations esperadas:
 043_lock_down_storage_client_writes.sql
 044_restrict_publish_to_managers.sql
 045_backfill_source_state.sql
+046_source_pack_import_runs.sql
+047_context_build_runs.sql
 ```
 
 Validacao rapida no SQL Editor:
@@ -169,7 +171,7 @@ python scripts/smoke/check_supabase_contracts.py
 
 O script deve validar, no minimo:
 
-- migrations `000-045`
+- migrations `000-047`
 - tabelas principais
 - RPCs de ingest, classification e extraction
 - bucket `context-builder-private`
@@ -218,6 +220,19 @@ Depois do minimo passar, rode o smoke completo pelo orquestrador canonico:
 ```bash
 uv run --cache-dir .uv-cache python scripts/smoke/run_real_smoke.py --target local --full --json-report .run/smoke-local-full.json
 ```
+
+Para provar importacao pelo runtime consumidor, defina o comando real de import
+antes do smoke completo:
+
+```powershell
+$env:CONTEXT_BUNDLE_RUNTIME_IMPORT_COMMAND="python -m runtime.importer --bundle ""{bundle}"""
+uv run --cache-dir .uv-cache python scripts\smoke\run_real_smoke.py --target local --full --json-report .run\smoke-local-full.json
+```
+
+Substitua o exemplo pelo comando do runtime consumidor. O placeholder `{bundle}`
+deve permanecer no comando para o orquestrador injetar o caminho do
+`context_bundle.v1` gerado. Nao coloque secrets no comando, em variaveis
+registradas, logs ou relatorios.
 
 Se precisar diagnosticar uma execucao especifica:
 
@@ -306,7 +321,8 @@ Use `--mode orphans` apenas para objetos antigos sem referencia em `sources`.
 
 ## Checklist final
 
-- [ ] Migrations `000-045` aplicadas sem erro.
+- [ ] Migrations `000-047` aplicadas sem erro.
+- [ ] Migrations `046_source_pack_import_runs.sql` e `047_context_build_runs.sql` aplicadas sem erro.
 - [ ] Bucket `context-builder-private` existe e e privado.
 - [ ] Redis esta acessivel via `REDIS_URL`.
 - [ ] API, Redis e workers foram iniciados por Docker ou runtime externo ao orquestrador de smoke.
@@ -314,6 +330,8 @@ Use `--mode orphans` apenas para objetos antigos sem referencia em `sources`.
 - [ ] `scripts/smoke/check_supabase_contracts.py` passa.
 - [ ] `scripts/smoke/run_real_smoke.py --target local` passa no modo minimo.
 - [ ] `scripts/smoke/run_real_smoke.py --target local --full` passa depois do minimo.
+- [ ] `CONTEXT_BUNDLE_RUNTIME_IMPORT_COMMAND` aponta para o runtime consumidor com placeholder `{bundle}`.
+- [ ] Runtime consumidor importa `context_bundle.v1` sem edicao manual.
 - [ ] `scripts/smoke/supabase_smoke.py` foi usado apenas como subfase/debug quando necessario.
 - [ ] Relatorio JSON foi gerado quando a rodada precisa ser auditavel.
 - [ ] `scripts/smoke/diagnose_source.py` consegue explicar a rodada por `source_id`.

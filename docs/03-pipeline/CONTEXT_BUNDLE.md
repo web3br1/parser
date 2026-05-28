@@ -15,6 +15,28 @@ GET /workspaces/{workspace_id}/context-bundle
 Any active workspace member may fetch the current bundle. Future persisted
 snapshot publishing remains restricted to owner/manager roles.
 
+## Source Pack Compiler
+
+The filesystem compiler is the upstream path for normalized upload packages.
+It is separate from the Supabase-backed route above and compiles a source pack
+folder directly into the same `ContextBundleResponse` contract.
+
+Canonical command:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\source_pack\compile_context_bundle.py C:\tmp\context-builder-sources\compounding-pharmacy-gold
+```
+
+The compiler first identifies a complete source pack by reading
+`00_source_manifest.md`. It then registers numbered files as published sources,
+extracts CSV row and Markdown section evidence, builds facts, rules, gaps,
+tests, memory policy and tool recommendations, sanitizes forbidden payloads and
+computes the same `integrity.bundle_hash` format used by the API exporter.
+
+For the current gold pack, the compiler reports 64 numbered source files plus
+manifest and README. `README.md` is package documentation, not active bundle
+knowledge.
+
 ## Contract
 
 ```json

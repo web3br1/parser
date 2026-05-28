@@ -112,6 +112,8 @@ def test_local_full_phase_order_validates_running_runtime_without_stack_check(
         "health",
         "smoke-min",
         "smoke-full",
+        "source-pack-compile",
+        "runtime-import",
     ]
     executed = [command_text(command) for command in fake_subprocess]
     assert "scripts/smoke/real_readiness.py" in executed[0].replace("\\", "/")
@@ -119,6 +121,12 @@ def test_local_full_phase_order_validates_running_runtime_without_stack_check(
     assert "scripts/smoke/supabase_smoke.py" in executed[2].replace("\\", "/")
     assert "scripts/smoke/supabase_smoke.py" in executed[3].replace("\\", "/")
     assert "--full" in executed[3]
+    source_pack_command = executed[4].replace("\\", "/")
+    assert "scripts/source_pack/compile_context_bundle.py" in source_pack_command
+    assert "--source-dir" in source_pack_command
+    assert "C:/tmp/context-builder-sources/compounding-pharmacy-gold" in source_pack_command
+    assert "--check" in source_pack_command
+    assert "scripts/smoke/runtime_import_probe.py" in executed[5].replace("\\", "/")
     assert all("scripts/dev/" not in command.replace("\\", "/") for command in executed)
     assert fake_health == ["http://localhost:8000/health"]
 
@@ -171,6 +179,8 @@ def test_cloud_full_skips_local_stack_phases_and_uses_api_base_url(
         "health",
         "smoke-min",
         "smoke-full",
+        "source-pack-compile",
+        "runtime-import",
     ]
     executed = [command_text(command).replace("\\", "/") for command, _env in calls]
     assert all("scripts/dev/" not in command for command in executed)
@@ -222,6 +232,62 @@ def test_skip_flags_remove_readiness_and_contracts(
 
     assert code == 0
     assert phase_names(report_path) == ["health", "smoke-min"]
+
+
+def test_full_skip_flags_remove_source_pack_compile_and_runtime_import(
+    real_smoke: Any,
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "skip-full-final-phases.json"
+
+    code = run_cli(
+        real_smoke,
+        [
+            "--target",
+            "local",
+            "--full",
+            "--skip-source-pack-compile",
+            "--skip-runtime-import",
+            "--dry-run",
+            "--json-report",
+            str(report_path),
+        ],
+    )
+
+    assert code == 0
+    assert phase_names(report_path) == [
+        "readiness",
+        "contracts",
+        "health",
+        "smoke-min",
+        "smoke-full",
+    ]
+
+
+def test_full_dry_run_source_pack_compile_uses_official_compiler_check(
+    real_smoke: Any,
+) -> None:
+    args = real_smoke.parse_args(
+        [
+            "--target",
+            "local",
+            "--full",
+            "--source-pack-dir",
+            r"C:\tmp\context-builder-sources\compounding-pharmacy-gold",
+            "--skip-runtime-import",
+            "--dry-run",
+        ]
+    )
+
+    phases = real_smoke.build_phases(args, {})
+
+    source_pack_phases = [phase for phase in phases if phase.name == "source-pack-compile"]
+    assert len(source_pack_phases) == 1
+    command = command_text(source_pack_phases[0].command).replace("\\", "/")
+    assert "scripts/source_pack/compile_context_bundle.py" in command
+    assert "--source-dir" in command
+    assert "compounding-pharmacy-gold" in command
+    assert "--check" in command
 
 
 def test_first_failure_stops_later_phases_by_default(
@@ -298,8 +364,10 @@ def test_continue_on_failure_records_later_safe_phases(
         "health",
         "smoke-min",
         "smoke-full",
+        "source-pack-compile",
+        "runtime-import",
     ]
-    assert len(calls) == 4
+    assert len(calls) == 6
     assert all("scripts/dev/" not in command for command in calls)
     assert fake_health == ["http://localhost:8000/health"]
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -346,6 +414,8 @@ def test_dry_run_records_planned_phases_without_execution(
         "health",
         "smoke-min",
         "smoke-full",
+        "source-pack-compile",
+        "runtime-import",
     ]
     assert all(phase["status"] == "planned" for phase in report["phases"])
     planned_commands = [command_text(phase["command"]).replace("\\", "/") for phase in report["phases"]]

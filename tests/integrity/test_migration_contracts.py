@@ -325,3 +325,17 @@ def test_seed_contains_all_seven_mvp_fact_types() -> None:
         "faq_item",
     }:
         assert f"'{fact_type}'" in sql
+
+
+def test_token_usage_log_supports_worker_payload_contract() -> None:
+    creation_sql = (MIGRATIONS / "017_token_usage.sql").read_text(encoding="utf-8").lower()
+    worker_contract_sql = (MIGRATIONS / "048_token_usage_worker_contract.sql").read_text(
+        encoding="utf-8"
+    ).lower()
+
+    assert "estimated_cost numeric" in creation_sql
+    assert "add column if not exists job_id uuid references public.processing_jobs" in (
+        worker_contract_sql
+    )
+    assert "add column if not exists prompt_version text" in worker_contract_sql
+    assert "idx_token_usage_job_id" in worker_contract_sql

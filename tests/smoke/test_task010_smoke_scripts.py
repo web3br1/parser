@@ -247,6 +247,50 @@ def test_contract_check_uses_configured_psql_bin(
     assert calls[0][0] == str(psql_bin)
 
 
+def test_contract_check_uses_docker_exec_when_psql_is_unavailable(
+    check_contracts,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    class Completed:
+        returncode = 0
+        stdout = "ok\n"
+        stderr = ""
+
+    def fake_run(args: list[str], **_kwargs: object) -> Completed:
+        calls.append(args)
+        return Completed()
+
+    monkeypatch.setattr(
+        check_contracts.shutil,
+        "which",
+        lambda name: "docker.exe" if name == "docker" else None,
+    )
+    monkeypatch.setattr(check_contracts.subprocess, "run", fake_run)
+    check_contracts.SUPABASE_DB_URL = ""
+    check_contracts.SUPABASE_POOLER_DB_URL = ""
+    check_contracts.PSQL_BIN = ""
+    check_contracts.SUPABASE_DB_CONTAINER = "supabase_db_Parser"
+
+    assert check_contracts.run_sql("select 1") == ["ok"]
+    assert calls[0] == [
+        "docker.exe",
+        "exec",
+        "supabase_db_Parser",
+        "psql",
+        "--username",
+        "postgres",
+        "--dbname",
+        "postgres",
+        "--no-align",
+        "--tuples-only",
+        "--quiet",
+        "--command",
+        "select 1",
+    ]
+
+
 def test_contract_check_rejects_client_write_privileges(
     check_contracts,
     monkeypatch: pytest.MonkeyPatch,
@@ -308,6 +352,27 @@ def test_source_diagnostic_report_counts_pipeline_rows() -> None:
     assert report["counts"]["chunks"] == 1
     assert report["counts"]["facts"] == 1
     assert report["counts"]["unknowns"] == 1
+
+
+def test_contract_expected_tables_includes_migration_046_047(check_contracts) -> None:
+    assert "source_pack_import_runs" in check_contracts.EXPECTED_TABLES
+    assert "context_build_runs" in check_contracts.EXPECTED_TABLES
+
+
+def test_contract_rls_tables_includes_migration_046_047(check_contracts) -> None:
+    assert "source_pack_import_runs" in check_contracts.RLS_TABLES
+    assert "context_build_runs" in check_contracts.RLS_TABLES
+
+
+def test_contract_api_only_tables_includes_migration_046_047(check_contracts) -> None:
+    assert "source_pack_import_runs" in check_contracts.API_ONLY_TABLES
+    assert "context_build_runs" in check_contracts.API_ONLY_TABLES
+
+
+def test_contract_expected_indexes_includes_migration_046_047_048(check_contracts) -> None:
+    assert "idx_source_pack_import_runs_workspace_id" in check_contracts.EXPECTED_INDEXES
+    assert "idx_context_build_runs_workspace_created_at" in check_contracts.EXPECTED_INDEXES
+    assert "idx_token_usage_job_id" in check_contracts.EXPECTED_INDEXES
 
 
 def test_required_task010_scripts_exist() -> None:

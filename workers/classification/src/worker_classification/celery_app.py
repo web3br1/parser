@@ -34,6 +34,25 @@ def _filesystem_transport_options(broker_url: str) -> dict[str, str]:
     }
 
 
+def _int_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return default
+    return int(value)
+
+
+def classification_worker_concurrency() -> int:
+    return _int_env("CLASSIFICATION_WORKER_CONCURRENCY", 4)
+
+
+def classification_task_soft_time_limit() -> int:
+    return _int_env("CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS", 30)
+
+
+def classification_task_time_limit() -> int:
+    return _int_env("CLASSIFICATION_TASK_TIME_LIMIT_SECONDS", 45)
+
+
 def create_celery_app() -> Celery:
     eager = os.getenv("CELERY_TASK_ALWAYS_EAGER") == "1"
     broker_url = _broker_url(eager)
@@ -43,12 +62,12 @@ def create_celery_app() -> Celery:
         task_default_queue="classification",
         imports=("worker_classification.tasks",),
         broker_transport_options=_filesystem_transport_options(broker_url),
-        worker_concurrency=4,
+        worker_concurrency=classification_worker_concurrency(),
         worker_prefetch_multiplier=1,
         task_acks_late=True,
         task_reject_on_worker_lost=True,
-        task_soft_time_limit=30,
-        task_time_limit=45,
+        task_soft_time_limit=classification_task_soft_time_limit(),
+        task_time_limit=classification_task_time_limit(),
         task_always_eager=eager,
         task_eager_propagates=eager,
     )

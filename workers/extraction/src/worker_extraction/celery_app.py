@@ -34,6 +34,25 @@ def _filesystem_transport_options(broker_url: str) -> dict[str, str]:
     }
 
 
+def _int_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return default
+    return int(value)
+
+
+def extraction_worker_concurrency() -> int:
+    return _int_env("EXTRACTION_WORKER_CONCURRENCY", 2)
+
+
+def extraction_task_soft_time_limit() -> int:
+    return _int_env("EXTRACTION_TASK_SOFT_TIME_LIMIT_SECONDS", 60)
+
+
+def extraction_task_time_limit() -> int:
+    return _int_env("EXTRACTION_TASK_TIME_LIMIT_SECONDS", 90)
+
+
 def create_celery_app() -> Celery:
     eager = os.getenv("CELERY_TASK_ALWAYS_EAGER") == "1"
     broker_url = _broker_url(eager)
@@ -43,10 +62,11 @@ def create_celery_app() -> Celery:
         task_default_queue="extraction",
         imports=("worker_extraction.tasks",),
         broker_transport_options=_filesystem_transport_options(broker_url),
+        worker_concurrency=extraction_worker_concurrency(),
         task_acks_late=True,
         task_reject_on_worker_lost=True,
-        task_soft_time_limit=60,
-        task_time_limit=90,
+        task_soft_time_limit=extraction_task_soft_time_limit(),
+        task_time_limit=extraction_task_time_limit(),
         task_always_eager=eager,
         task_eager_propagates=eager,
     )

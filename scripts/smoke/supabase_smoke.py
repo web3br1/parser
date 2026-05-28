@@ -431,8 +431,41 @@ def step_poll_review_queue(client: httpx.Client, workspace_id: str, source_id: s
     raise AssertionError("unreachable")
 
 
+def _source_status(workspace_id: str, source_id: str) -> str | None:
+    with supabase_rest() as rest:
+        resp = rest.get(
+            "/sources",
+            params={
+                "workspace_id": f"eq.{workspace_id}",
+                "id": f"eq.{source_id}",
+                "select": "status",
+            },
+        )
+    if resp.status_code != 200:
+        fail(f"Source status query failed: {resp.status_code} {resp.text}")
+    rows = resp.json()
+    if not rows:
+        fail(f"Source {source_id} not found")
+    return rows[0].get("status")
+
+
+def step_wait_source_ready_for_publish(workspace_id: str, source_id: str) -> None:
+    print("\n[10] Wait source extraction complete")
+    deadline = time.time() + POLL_TIMEOUT
+    while time.time() < deadline:
+        status = _source_status(workspace_id, source_id)
+        if status in {"extracted", "published"}:
+            ok(f"Source ready for publish (status={status})")
+            return
+        if status == "failed":
+            fail("Source failed before publish")
+        info(f"Source status: {status}, waiting for extraction to finish")
+        time.sleep(POLL_INTERVAL)
+    fail(f"Source publish-readiness timeout after {POLL_TIMEOUT}s")
+
+
 def step_approve_and_publish(client: httpx.Client, workspace_id: str, chunk_id: str) -> str:
-    print("\n[10] Approve and publish first fact")
+    print("\n[11] Approve and publish extracted records")
     resp = client.get(f"/workspaces/{workspace_id}/review/{chunk_id}")
     if resp.status_code != 200:
         fail(f"Chunk detail failed: {resp.status_code} {resp.text}")
@@ -440,25 +473,41 @@ def step_approve_and_publish(client: httpx.Client, workspace_id: str, chunk_id: 
     facts = detail.get("facts", [])
     if not facts:
         fail("No facts in chunk detail")
-    fact = facts[0]
-    fact_id = str(fact["id"])
-    fact_type = fact.get("fact_type", "?")
-    ok(f"Found fact: {fact_id} (type={fact_type})")
+    first_fact_id = str(facts[0]["id"])
 
-    approve = client.post(f"/workspaces/{workspace_id}/review/facts/{fact_id}/approve", json={})
-    if approve.status_code not in (200, 201):
-        fail(f"Approve failed: {approve.status_code} {approve.text}")
-    ok("Fact approved")
+    for fact in facts:
+        fact_id = str(fact["id"])
+        fact_type = fact.get("fact_type", "?")
+        ok(f"Found fact: {fact_id} (type={fact_type})")
 
-    publish = client.post(f"/workspaces/{workspace_id}/review/facts/{fact_id}/publish")
-    if publish.status_code not in (200, 201):
-        fail(f"Publish failed: {publish.status_code} {publish.text}")
-    ok("Fact published")
-    return fact_id
+        approve = client.post(f"/workspaces/{workspace_id}/review/facts/{fact_id}/approve", json={})
+        if approve.status_code not in (200, 201):
+            fail(f"Approve failed for fact {fact_id}: {approve.status_code} {approve.text}")
+        publish = client.post(f"/workspaces/{workspace_id}/review/facts/{fact_id}/publish")
+        if publish.status_code not in (200, 201):
+            fail(f"Publish failed for fact {fact_id}: {publish.status_code} {publish.text}")
+
+    ok(f"{len(facts)} fact(s) approved and published")
+    return first_fact_id
+
+
+def step_wait_source_published(workspace_id: str, source_id: str) -> None:
+    print("\n[12] Wait source published")
+    deadline = time.time() + POLL_TIMEOUT
+    while time.time() < deadline:
+        status = _source_status(workspace_id, source_id)
+        if status == "published":
+            ok("Source published")
+            return
+        if status == "failed":
+            fail("Source failed after publish")
+        info(f"Source status: {status}, waiting for published")
+        time.sleep(POLL_INTERVAL)
+    fail(f"Source publish timeout after {POLL_TIMEOUT}s")
 
 
 def step_verify_published(workspace_id: str, fact_id: str) -> None:
-    print("\n[11] Verify published fact")
+    print("\n[13] Verify published fact")
     with supabase_rest() as rest:
         resp = rest.get(
             "/published_facts",
@@ -518,8 +567,12 @@ def main() -> None:
             if FULL:
                 chunk_id = step_poll_review_queue(client, workspace_id, source_id)
                 report.ok("review_queue", "Review queue ready", workspace_id=workspace_id, source_id=source_id, chunk_id=chunk_id)
+                step_wait_source_ready_for_publish(workspace_id, source_id)
+                report.ok("source_ready", "Source extraction complete", workspace_id=workspace_id, source_id=source_id)
                 fact_id = step_approve_and_publish(client, workspace_id, chunk_id)
-                report.ok("approve_publish", "Fact approved and published", workspace_id=workspace_id, chunk_id=chunk_id, fact_id=fact_id)
+                report.ok("approve_publish", "Facts approved and published", workspace_id=workspace_id, chunk_id=chunk_id, fact_id=fact_id)
+                step_wait_source_published(workspace_id, source_id)
+                report.ok("source_published", "Source published", workspace_id=workspace_id, source_id=source_id)
                 step_verify_published(workspace_id, fact_id)
                 report.ok("published_view", "Fact visible in published_facts", workspace_id=workspace_id, fact_id=fact_id)
         success = True

@@ -10,14 +10,15 @@
 
 | Ordem | Arquivo | O que cobre |
 |-------|---------|-------------|
-| 1 | `/docs/00-start-here/MVP_DECISIONS.md` | Decisões finais do MVP: escopo, fact types, answer states, pipeline, QA e produção |
-| 2 | `/docs/00-start-here/SYSTEM_OVERVIEW.md` | O que o sistema faz, camadas, confiabilidade de fonte, versionamento, answer states |
-| 3 | `/docs/03-pipeline/PIPELINE.md` | Fluxo técnico completo: ingestão, publicação, contradição, rollback, idempotência |
-| 4 | `/docs/03-pipeline/CONTEXT_BUNDLE.md` | Contrato `context_bundle.v1` consumido pelo chatbot externo |
-| 5 | `/docs/04-data/DATA_MODEL.md` | Schema SQL completo com RLS, views de publicação, permissões por ação |
-| 6 | `/docs/01-product/MVP_SCOPE.md` | O que entra, o que não entra, critérios de aceite, roadmap |
-| 7 | `/docs/04-data/SCHEMA_REGISTRY.md` | Schemas Pydantic fixos por fact_type |
-| 8 | `/docs/08-ops/REJECTION_RULES.md` | O que nunca pode ser implementado |
+| 1 | `/docs/00-start-here/USER_GUIDE.md` | Guia completo de uso: console, API, source packs, bundle, smokes e limites atuais |
+| 2 | `/docs/00-start-here/MVP_DECISIONS.md` | Decisões finais do MVP: escopo, fact types, answer states, pipeline, QA e produção |
+| 3 | `/docs/00-start-here/SYSTEM_OVERVIEW.md` | O que o sistema faz, camadas, confiabilidade de fonte, versionamento, answer states |
+| 4 | `/docs/03-pipeline/PIPELINE.md` | Fluxo técnico completo: ingestão, publicação, contradição, rollback, idempotência |
+| 5 | `/docs/03-pipeline/CONTEXT_BUNDLE.md` | Contrato `context_bundle.v1` consumido pelo chatbot externo |
+| 6 | `/docs/04-data/DATA_MODEL.md` | Schema SQL completo com RLS, views de publicação, permissões por ação |
+| 7 | `/docs/01-product/MVP_SCOPE.md` | O que entra, o que não entra, critérios de aceite, roadmap |
+| 8 | `/docs/04-data/SCHEMA_REGISTRY.md` | Schemas Pydantic fixos por fact_type |
+| 9 | `/docs/08-ops/REJECTION_RULES.md` | O que nunca pode ser implementado |
 
 ## Referência durante implementação
 

@@ -163,6 +163,69 @@ export type UploadResponse = {
   message: string;
 };
 
+export type ContextBuildFileMetadata = {
+  name: string;
+  size: number;
+  relative_path: string | null;
+  mime_type: string | null;
+  last_modified: number | null;
+};
+
+export type ContextBuildPreflightRequest = {
+  files?: ContextBuildFileMetadata[];
+  staged_upload_id?: string | null;
+  input_fingerprint?: string | null;
+  input_hash?: string | null;
+  persist?: boolean;
+};
+
+export type ContextBuildPreflightResponse = {
+  run_id: string | null;
+  input_mode: "single_document" | "multi_document_batch" | "source_pack";
+  status: string;
+  recommended_action: "compile_as_source_pack" | "normal_ingest" | "batch_ingest" | "reject" | string;
+  input_fingerprint: string;
+  input_hash: string | null;
+  source_pack_id: string | null;
+  source_pack_version: string | null;
+  counts: Record<string, number>;
+  missing_files: string[];
+  extra_files: string[];
+  warnings: string[];
+  errors: string[];
+  blocking_reasons: string[];
+  metadata?: Record<string, unknown> | null;
+};
+
+export type ContextBuildStagedUploadResponse = {
+  staged_upload_id: string;
+  input_hash: string;
+  input_fingerprint: string;
+  files: ContextBuildFileMetadata[];
+  warnings: string[];
+  blocking_reasons: string[];
+};
+
+export type ContextBuildCompileResponse = {
+  run_id: string;
+  status: string;
+  bundle_hash: string | null;
+  context_version: string | null;
+  readiness_status: "ready" | "warning" | "blocked" | "unknown" | string;
+  warnings: string[];
+  blocking_reasons: string[];
+};
+
+type ContextBuildRunApiResponse = {
+  id: string;
+  status: string;
+  bundle_hash: string | null;
+  context_version: string | null;
+  readiness_status: "ready" | "warning" | "blocked" | string | null;
+  warnings: string[];
+  errors: string[];
+};
+
 export type JobStatus = {
   job_id: string;
   status: string;
@@ -353,3 +416,190 @@ export type QueryResponse = {
     estimated_cost: number;
   };
 };
+
+export async function preflightContextBuildRun(
+  workspaceId: string,
+  token: string,
+  request: ContextBuildPreflightRequest
+): Promise<ContextBuildPreflightResponse> {
+  return apiFetch<ContextBuildPreflightResponse>(
+    `/workspaces/${workspaceId}/context-build-runs/preflight`,
+    {
+      method: "POST",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...request, persist: request.persist ?? true })
+    }
+  );
+}
+
+export async function stageContextBuildUpload(
+  workspaceId: string,
+  token: string,
+  files: File[]
+): Promise<ContextBuildStagedUploadResponse> {
+  const formData = new FormData();
+  const relativePaths = files.map((file) => file.webkitRelativePath || file.name);
+
+  for (const file of files) {
+    formData.append("files", file, file.name);
+  }
+  formData.append("relative_paths", JSON.stringify(relativePaths));
+
+  return apiFetch<ContextBuildStagedUploadResponse>(
+    `/workspaces/${workspaceId}/context-build-runs/staged-uploads`,
+    {
+      method: "POST",
+      token,
+      body: formData
+    }
+  );
+}
+
+export async function compileContextBuildRun(
+  workspaceId: string,
+  token: string,
+  runId: string
+): Promise<ContextBuildCompileResponse> {
+  const response = await apiFetch<ContextBuildRunApiResponse>(
+    `/workspaces/${workspaceId}/context-build-runs/${runId}/actions/compile`,
+    {
+      method: "POST",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmation: true })
+    }
+  );
+  return {
+    run_id: response.id,
+    status: response.status,
+    bundle_hash: response.bundle_hash,
+    context_version: response.context_version,
+    readiness_status: response.readiness_status ?? "unknown",
+    warnings: response.warnings,
+    blocking_reasons: response.errors
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tutorial / Tutor API
+// Contracts pinned in tests/api/test_context_build_tutor.py (20 tests).
+// ---------------------------------------------------------------------------
+
+/** Status values returned by every tool_call entry. */
+export type TutorialToolCallStatus =
+  | "completed"
+  | "refused"
+  | "requires_confirmation"
+  | "unavailable";
+
+/**
+ * Single tool invocation record.
+ * `result` is Record<string, unknown> because read-only tools and the compile
+ * tool each emit a different payload shape — see TutorCompileToolResult for
+ * the compile-specific narrowing.
+ */
+export type TutorialToolCall = {
+  name: string;
+  status: TutorialToolCallStatus;
+  requires_confirmation: boolean;
+  result: Record<string, unknown>;
+};
+
+/**
+ * Every response from /tutorial/messages and /tutorial/tool-confirmations.
+ * By contract, tool_calls always contains exactly one entry.
+ */
+export type TutorialMessageResponse = {
+  message: string;
+  tool_calls: TutorialToolCall[];
+};
+
+/** Payload for POST /tutorial/messages. */
+export type TutorialMessageRequest = {
+  /** 1–4 000 characters. */
+  message: string;
+  context_build_run_id?: string | null;
+  current_step?: string | null;
+  /** Use a TutorToolName when calling a specific tool directly. */
+  requested_tool?: string | null;
+  /** Preflight/detection data forwarded to summarize_detected_input. */
+  detected_input?: Record<string, unknown>;
+};
+
+/** Payload for POST /tutorial/tool-confirmations. */
+export type TutorialToolConfirmationRequest = {
+  /** Must match a name in ALLOWED_TOOLS (see Python backend). */
+  tool_name: string;
+  /**
+   * The token from tool_calls[0].result.confirmation_token_hint returned by
+   * the requires_confirmation step. Do NOT hardcode; always read from the
+   * previous response.
+   */
+  confirmation_token: string;
+  context_build_run_id?: string | null;
+};
+
+/**
+ * Shape of tool_calls[0].result when the compile tool succeeds or fails.
+ * Use as a type assertion after checking tool_calls[0].name ===
+ * "compile_context_bundle_after_confirmation".
+ * None fields are omitted by the backend (test_compile_result_omits_none_fields).
+ */
+export type TutorCompileToolResult = {
+  status: "compiled" | "failed";
+  context_build_run_id?: string;
+  bundle_hash?: string;
+  context_version?: string;
+  output_path?: string;
+  readiness_status?: "ready" | "warning" | "blocked";
+  readiness_score?: number;
+  error?: string;
+};
+
+/**
+ * Shape of tool_calls[0].result when a mutating tool requires confirmation.
+ * Read confirmation_token_hint from here; pass it verbatim to confirmTutorialTool.
+ */
+export type TutorRequiresConfirmationResult = {
+  code: "confirmation_required";
+  confirmation_token_hint: string;
+};
+
+/** Shape of tool_calls[0].result when a tool call is refused. */
+export type TutorRefusedResult = {
+  code: "tool_not_allowed" | "invalid_confirmation_token";
+  allowed_tools?: string[];
+};
+
+export async function sendTutorialMessage(
+  workspaceId: string,
+  token: string,
+  payload: TutorialMessageRequest
+): Promise<TutorialMessageResponse> {
+  return apiFetch<TutorialMessageResponse>(
+    `/workspaces/${workspaceId}/tutorial/messages`,
+    {
+      method: "POST",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export async function confirmTutorialTool(
+  workspaceId: string,
+  token: string,
+  payload: TutorialToolConfirmationRequest
+): Promise<TutorialMessageResponse> {
+  return apiFetch<TutorialMessageResponse>(
+    `/workspaces/${workspaceId}/tutorial/tool-confirmations`,
+    {
+      method: "POST",
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }
+  );
+}

@@ -104,7 +104,7 @@ def log_token_usage(
             "prompt_version": prompt_version,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
-            "estimated_cost_usd": estimated_cost_usd,
+            "estimated_cost": estimated_cost_usd,
             "latency_ms": latency_ms,
         }
     ).execute()
