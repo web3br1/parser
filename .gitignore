@@ -29,3 +29,8 @@ supabase/.branches/
 .DS_Store
 
 .claude/settings.local.json
+
+# Operational artefacts — not committed (smoke reports, PR drafts, etc.)
+scripts/smoke/reports/
+tests/smoke/reports/
+PR_BODY.md
