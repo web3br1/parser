@@ -137,6 +137,105 @@ def test_compile_tool_with_confirmation_calls_injected_executor(
     ]
 
 
+def test_compile_result_includes_bundle_and_readiness_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_compile(**kwargs: Any) -> TutorCompileResult:
+        return TutorCompileResult(
+            status="compiled",
+            context_build_run_id="run_1",
+            bundle_hash="sha256:abc",
+            context_version="ctx-v1",
+            output_path="/out/bundle.json",
+            readiness_status="ready",
+            readiness_score=95,
+        )
+
+    response = _client(monkeypatch, ContextBuildTutor(compile_executor=fake_compile)).post(
+        "/workspaces/ws_1/tutorial/tool-confirmations",
+        json={
+            "tool_name": "compile_context_bundle_after_confirmation",
+            "confirmation_token": "confirm-ws_1-run_1-compile_context_bundle_after_confirmation",
+            "context_build_run_id": "run_1",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    result = response.json()["tool_calls"][0]["result"]
+    assert result["status"] == "compiled"
+    assert result["bundle_hash"] == "sha256:abc"
+    assert result["output_path"] == "/out/bundle.json"
+    assert result["readiness_status"] == "ready"
+    assert result["readiness_score"] == 95
+
+
+def test_compile_result_omits_none_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_compile(**kwargs: Any) -> TutorCompileResult:
+        return TutorCompileResult(status="compiled", bundle_hash="sha256:abc")
+
+    response = _client(monkeypatch, ContextBuildTutor(compile_executor=fake_compile)).post(
+        "/workspaces/ws_1/tutorial/tool-confirmations",
+        json={
+            "tool_name": "compile_context_bundle_after_confirmation",
+            "confirmation_token": "confirm-ws_1-None-compile_context_bundle_after_confirmation",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    result = response.json()["tool_calls"][0]["result"]
+    assert "output_path" not in result
+    assert "readiness_status" not in result
+    assert "readiness_score" not in result
+    assert "error" not in result
+
+
+def test_compile_executor_returns_failed_when_run_id_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Router compile_executor must return TutorCompileResult(failed) for missing run_id."""
+    from context_builder.routers.tutorial import get_context_build_tutor
+
+    tutor = get_context_build_tutor(db=None)
+    result = tutor._compile_executor(  # type: ignore[union-attr]
+        workspace_id="ws_1",
+        actor_user_id="user_1",
+        context_build_run_id=None,
+    )
+
+    assert result.status == "failed"
+    assert result.error == "context_build_run_id_required"
+
+
+def test_compile_executor_handles_http_exception_gracefully(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Router compile_executor must catch HTTPException and return TutorCompileResult(failed)."""
+    import context_builder.routers.tutorial as tutorial_mod
+    from context_builder.routers.tutorial import get_context_build_tutor
+    from fastapi import HTTPException as FastAPIHTTPException
+
+    monkeypatch.setattr(
+        tutorial_mod,
+        "compile_context_build_run",
+        lambda *_a, **_kw: (_ for _ in ()).throw(
+            FastAPIHTTPException(
+                status_code=409,
+                detail={"code": "context_build_run_not_compilable"},
+            )
+        ),
+    )
+
+    tutor = get_context_build_tutor(db=None)
+    result = tutor._compile_executor(  # type: ignore[union-attr]
+        workspace_id="ws_1",
+        actor_user_id="user_1",
+        context_build_run_id="run_1",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "context_build_run_not_compilable"
+
+
 def test_compile_tool_refuses_invalid_confirmation_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

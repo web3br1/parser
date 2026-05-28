@@ -29,6 +29,9 @@ class TutorCompileResult:
     context_build_run_id: str | None = None
     bundle_hash: str | None = None
     context_version: str | None = None
+    output_path: str | None = None
+    readiness_status: str | None = None
+    readiness_score: int | None = None
     error: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
@@ -39,6 +42,9 @@ class TutorCompileResult:
                 "context_build_run_id": self.context_build_run_id,
                 "bundle_hash": self.bundle_hash,
                 "context_version": self.context_version,
+                "output_path": self.output_path,
+                "readiness_status": self.readiness_status,
+                "readiness_score": self.readiness_score,
                 "error": self.error,
             }.items()
             if value is not None

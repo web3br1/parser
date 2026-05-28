@@ -28,17 +28,28 @@ def get_context_build_tutor(
         run_id = kwargs.get("context_build_run_id")
         if not isinstance(run_id, str) or not run_id:
             return TutorCompileResult(status="failed", error="context_build_run_id_required")
-        run = compile_context_build_run(
-            db,
-            workspace_id=str(kwargs["workspace_id"]),
-            run_id=run_id,
-            confirmed=True,
-        )
+        try:
+            run = compile_context_build_run(
+                db,
+                workspace_id=str(kwargs["workspace_id"]),
+                run_id=run_id,
+                confirmed=True,
+            )
+        except HTTPException as exc:
+            code = (
+                exc.detail
+                if isinstance(exc.detail, str)
+                else exc.detail.get("code", "compile_error")
+            )
+            return TutorCompileResult(status="failed", error=str(code))
         return TutorCompileResult(
             status=run.status,
             context_build_run_id=run.id,
             bundle_hash=run.bundle_hash,
             context_version=run.context_version,
+            output_path=run.output_path,
+            readiness_status=str(run.readiness_status) if run.readiness_status else None,
+            readiness_score=run.readiness_score,
         )
 
     return ContextBuildTutor(compile_executor=compile_executor)
