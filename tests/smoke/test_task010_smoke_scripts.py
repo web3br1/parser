@@ -310,6 +310,27 @@ def test_source_diagnostic_report_counts_pipeline_rows() -> None:
     assert report["counts"]["unknowns"] == 1
 
 
+def test_contract_expected_tables_includes_migration_046_047(check_contracts) -> None:
+    assert "source_pack_import_runs" in check_contracts.EXPECTED_TABLES
+    assert "context_build_runs" in check_contracts.EXPECTED_TABLES
+
+
+def test_contract_rls_tables_includes_migration_046_047(check_contracts) -> None:
+    assert "source_pack_import_runs" in check_contracts.RLS_TABLES
+    assert "context_build_runs" in check_contracts.RLS_TABLES
+
+
+def test_contract_api_only_tables_includes_migration_046_047(check_contracts) -> None:
+    assert "source_pack_import_runs" in check_contracts.API_ONLY_TABLES
+    assert "context_build_runs" in check_contracts.API_ONLY_TABLES
+
+
+def test_contract_expected_indexes_includes_migration_046_047_048(check_contracts) -> None:
+    assert "idx_source_pack_import_runs_workspace_id" in check_contracts.EXPECTED_INDEXES
+    assert "idx_context_build_runs_workspace_created_at" in check_contracts.EXPECTED_INDEXES
+    assert "idx_token_usage_job_id" in check_contracts.EXPECTED_INDEXES
+
+
 def test_required_task010_scripts_exist() -> None:
     assert (ROOT / "scripts" / "smoke" / "real_readiness.py").exists()
     assert (ROOT / "scripts" / "smoke" / "run_real_smoke.py").exists()

@@ -49,6 +49,9 @@ EXPECTED_TABLES = [
     "fact_type_schemas",
     "processing_jobs",
     "privacy_requests",
+    # migrations 046-047: context build pipeline tracking
+    "source_pack_import_runs",
+    "context_build_runs",
 ]
 RLS_TABLES = [
     "api_specs",
@@ -56,6 +59,8 @@ RLS_TABLES = [
     "business_rules",
     "chunks",
     "connector_instances",
+    # migration 047
+    "context_build_runs",
     "contradictions",
     "evidence_spans",
     "extracted_facts",
@@ -66,6 +71,8 @@ RLS_TABLES = [
     "processing_jobs",
     "query_audits",
     "source_quality_reports",
+    # migration 046
+    "source_pack_import_runs",
     "sources",
     "token_usage_log",
     "unknown_facts_queue",
@@ -97,12 +104,23 @@ EXPECTED_RPCS = [
     "supersede_rule",
 ]
 EXPECTED_EXTENSIONS = ["pgcrypto", "uuid-ossp"]
-EXPECTED_INDEXES = ["uq_sources_workspace_file_hash_active"]
+EXPECTED_INDEXES = [
+    "uq_sources_workspace_file_hash_active",
+    # migration 046: source_pack_import_runs
+    "idx_source_pack_import_runs_workspace_id",
+    # migration 047: context_build_runs
+    "idx_context_build_runs_workspace_created_at",
+    # migration 048: token_usage_log worker contract
+    "idx_token_usage_job_id",
+]
 API_ONLY_TABLES = [
     "business_rules",
     "chunks",
+    # migrations 046-047: backend-only (revoke all from anon, authenticated)
+    "context_build_runs",
     "evidence_spans",
     "extracted_facts",
+    "source_pack_import_runs",
     "unknown_facts_queue",
     "contradictions",
 ]
@@ -380,6 +398,48 @@ def main() -> None:
             "and column_name = 'metadata';"
         ),
         "jsonb",
+    )
+    # migration 047: context_build_runs key columns
+    assert_sql_single_value(
+        "context_build_runs.input_fingerprint column exists",
+        (
+            "select data_type from information_schema.columns "
+            "where table_schema = 'public' "
+            "and table_name = 'context_build_runs' "
+            "and column_name = 'input_fingerprint';"
+        ),
+        "text",
+    )
+    assert_sql_single_value(
+        "context_build_runs.input_mode column exists",
+        (
+            "select data_type from information_schema.columns "
+            "where table_schema = 'public' "
+            "and table_name = 'context_build_runs' "
+            "and column_name = 'input_mode';"
+        ),
+        "text",
+    )
+    # migration 048: token_usage_log worker contract columns
+    assert_sql_single_value(
+        "token_usage_log.job_id column exists",
+        (
+            "select data_type from information_schema.columns "
+            "where table_schema = 'public' "
+            "and table_name = 'token_usage_log' "
+            "and column_name = 'job_id';"
+        ),
+        "uuid",
+    )
+    assert_sql_single_value(
+        "token_usage_log.prompt_version column exists",
+        (
+            "select data_type from information_schema.columns "
+            "where table_schema = 'public' "
+            "and table_name = 'token_usage_log' "
+            "and column_name = 'prompt_version';"
+        ),
+        "text",
     )
     assert_sql_has_rows(
         "RLS enabled",
