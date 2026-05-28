@@ -1,6 +1,6 @@
 # TASK-012 - Repository Clean Slate
 
-Status: in_progress
+Status: completed — 2026-05-27
 
 ## Objective
 
@@ -127,7 +127,18 @@ No destructive cleanup has been executed.
    Result: `git worktree list` shows only main checkout. `/c/tmp/parser-sdd-*` dirs gone.
    Note: `/c/tmp/parser-sdd-schema-review-pytest` is a pytest temp dir (no `.git`), unrelated.
 
-4. **TASK-012D - Explicit Cleanup Execution**
-   - Run only approved cleanup commands.
-   - No `git reset`, `git restore`, recursive delete, or worktree removal without explicit approval.
-   - Acceptance: root checkout has no ambiguous local state.
+4. **TASK-012D - Physical Artifact Cleanup** — skipped by choice
+   - Candidates identified: `.venv/`, `node_modules/`, `.uv-cache/`, `.run/`, `.mypy_cache/`, `.ruff_cache/`, `.pytest_cache/`, `codex-smoke-basetemp/`
+   - Decision: all artifacts are git-ignored and regenerable (`uv sync`, `pnpm install`). Physical cleanup would free ~1–2 GB disk space but adds rebuild cost with no structural benefit.
+   - Also identified: `backend/` and `prototype/` are tracked legacy dirs (initial commit only). Candidates for `git rm` in a future task if confirmed dead code.
+   - No action taken. Repo is structurally clean without it.
+
+## Final State — 2026-05-27
+
+- `git status --short` → clean
+- `git stash list` → empty
+- `git worktree list` → main checkout only
+- `git ls-files --others --exclude-standard` → zero untracked files
+- All generated artifacts covered by `.gitignore`
+- No orphaned worktrees or local-only branches
+- Integration branch `codex/source-pack-context-bundle-compiler` synchronized with `origin`
