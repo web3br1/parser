@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 TABLE_SPACED_COLUMNS_RE = re.compile(r"\s{2,}")
+CAPTION_RE = re.compile(r"\b(?:Figura\s+\d+|Imagem(?:\s+\d+)?|Fluxograma|Anexo(?:\s+(?:[IVXLCDM]+|\d+))?)\b\s*[-–:]\s*\S", re.IGNORECASE)
 
 LAYOUT_COMPLEXITY_VALUES = ("low", "medium", "high")
 TEXT_LAYER_TYPE_VALUES = ("digital_text", "mixed", "scanned_image", "empty")
@@ -19,6 +20,7 @@ RISK_CODE_VALUES = (
     "high_layout_complexity",
     "table_candidates_present",
     "sparse_text_with_images",
+    "visual_content_without_caption",
 )
 
 
@@ -141,6 +143,7 @@ def _profile_page(page: Any, page_number: int) -> PageProfile:
             table_candidates=table_candidates,
             text_chars=text_chars,
             image_count=image_count,
+            text=text,
         ),
     )
 
@@ -172,6 +175,7 @@ def _risk_codes(
     table_candidates: int,
     text_chars: int,
     image_count: int,
+    text: str,
 ) -> list[str]:
     risk_codes: list[str] = []
     if empty_page:
@@ -184,8 +188,11 @@ def _risk_codes(
         risk_codes.append("high_layout_complexity")
     if table_candidates > 0:
         risk_codes.append("table_candidates_present")
-    if 0 < text_chars < 200 and image_count > 0:
-        risk_codes.append("sparse_text_with_images")
+    if text_chars < 200 and image_count > 0:
+        if text_chars > 0:
+            risk_codes.append("sparse_text_with_images")
+        if CAPTION_RE.search(text) is None:
+            risk_codes.append("visual_content_without_caption")
     return risk_codes
 
 

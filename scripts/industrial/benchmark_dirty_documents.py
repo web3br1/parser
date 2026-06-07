@@ -13,9 +13,31 @@ from pathlib import Path
 from typing import Any
 
 from parsers import UnsupportedMimeError, get_parser
-from parsers.base import ExtractionError, sanitize_text, truncate_to_limit
+from parsers.base import (
+    ExtractedPage,
+    ExtractionError,
+    ExtractionResult,
+    sanitize_text,
+    truncate_to_limit,
+)
+from parsers.chunker import RawChunk, chunk_extraction
 from parsers.industrial_metadata import extract_metadata_candidates
+from parsers.industrial_review import build_review_packets, summarize_review_packets
+from parsers.industrial_sections import (
+    resolve_document_sections,
+    section_diagnostics_to_metadata,
+)
+from parsers.industrial_semantics import (
+    extract_semantic_candidates,
+    semantic_candidates_to_metadata,
+    summarize_semantic_candidates,
+)
 from parsers.industrial_structure import extract_structure_hints
+from parsers.industrial_tables import (
+    extract_table_figure_candidates,
+    summarize_table_figure_candidates,
+    table_figure_candidates_to_metadata,
+)
 from parsers.quality_gate import run_quality_gate
 
 SCHEMA_VERSION = "industrial_dirty_benchmark.v1"
@@ -93,10 +115,12 @@ def benchmark_document(
     text = _extracted_text(result)
     metadata = extract_metadata_candidates(filename=path.name, text=text)
     structure_hints = extract_structure_hints(text)
+    section_diagnostics = _section_diagnostics(result=result, text=text)
     quality = run_quality_gate(result) if result is not None else None
     parser_error = unsupported_error or _parser_error(result)
     processing = _default_processing()
     original_parser_error = parser_error
+    chunk_result = result
 
     if parser_error == ExtractionError.PAGES_EXCEEDED.value and path.suffix.lower() == ".pdf":
         fallback = _split_pages_extraction(path=path, pdf_metrics=pdf_metrics)
@@ -104,6 +128,19 @@ def benchmark_document(
             text = str(fallback["text"])
             metadata = extract_metadata_candidates(filename=path.name, text=text)
             structure_hints = extract_structure_hints(text)
+            section_diagnostics = _section_diagnostics_from_pages(
+                fallback.get("pages", []),
+                text=text,
+            )
+            chunk_result = ExtractionResult(
+                mime_type=mime_type,
+                pages=fallback.get("pages", []),
+                total_chars=len(text),
+                metadata={
+                    "parser": "pdf",
+                    "page_profiles": fallback.get("page_profiles", []),
+                },
+            )
             parser_error = None
             quality = None
             processing = {
@@ -116,6 +153,40 @@ def benchmark_document(
     elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
     metadata_dict = asdict(metadata)
     gap_codes = list(metadata.gap_codes)
+    section_metadata = section_diagnostics_to_metadata(section_diagnostics)
+    chunk_diagnostics = _chunk_diagnostics(
+        result=chunk_result,
+        industrial_context=section_metadata,
+        parser_error=parser_error,
+    )
+    semantic_diagnostics = _semantic_diagnostics(
+        result=chunk_result,
+        industrial_context=section_metadata,
+        parser_error=parser_error,
+    )
+    semantic_candidates = _semantic_candidate_metadata(
+        result=chunk_result,
+        industrial_context=section_metadata,
+        parser_error=parser_error,
+    )
+    table_figure_diagnostics = _table_figure_diagnostics(
+        result=chunk_result,
+        industrial_context=section_metadata,
+        parser_error=parser_error,
+    )
+    table_figure_candidates = _table_figure_candidate_metadata(
+        result=chunk_result,
+        industrial_context=section_metadata,
+        parser_error=parser_error,
+    )
+    review_packet_summary = _review_packet_summary(
+        document_id=_document_id(relative_path),
+        metadata=metadata_dict,
+        gap_codes=gap_codes,
+        section_diagnostics=section_metadata,
+        semantic_candidates=semantic_candidates,
+        table_figure_candidates=table_figure_candidates,
+    )
     extracted_char_count = (
         len(text)
         if processing["mode"] == "split_pages"
@@ -146,6 +217,11 @@ def benchmark_document(
         "metadata": metadata_dict,
         "gap_codes": sorted(gap_codes),
         "structure_hint_count": len(structure_hints),
+        "section_diagnostics": section_metadata,
+        "chunk_diagnostics": chunk_diagnostics,
+        "semantic_diagnostics": semantic_diagnostics,
+        "table_figure_diagnostics": table_figure_diagnostics,
+        "review_packet_summary": review_packet_summary,
         "known_findings": _known_findings(
             file_name=path.name,
             metadata=metadata_dict,
@@ -236,7 +312,201 @@ def _summary(documents: list[dict[str, Any]]) -> dict[str, Any]:
         "total_extracted_chars": sum(document["extracted_char_count"] for document in documents),
         "parser_errors": dict(sorted(parser_errors.items())),
         "gap_counts": dict(sorted(gap_counts.items())),
+        "section_count": sum(
+            document["section_diagnostics"]["summary"]["section_count"]
+            for document in documents
+        ),
+        "section_path_count": sum(
+            document["section_diagnostics"]["summary"]["section_path_count"]
+            for document in documents
+        ),
+        "boilerplate_counts": _sum_nested_counts(
+            documents,
+            ["section_diagnostics", "summary", "boilerplate_counts"],
+        ),
+        "section_risk_counts": _sum_nested_counts(
+            documents,
+            ["section_diagnostics", "summary", "risk_code_counts"],
+        ),
+        "chunk_count": sum(
+            document["chunk_diagnostics"]["total_chunk_count"]
+            for document in documents
+        ),
+        "section_path_chunk_count": sum(
+            document["chunk_diagnostics"]["section_path_chunk_count"]
+            for document in documents
+        ),
+        "chunk_kind_counts": _sum_nested_counts(
+            documents,
+            ["chunk_diagnostics", "chunk_kind_counts"],
+        ),
+        "chunk_structure_risk_counts": _sum_nested_counts(
+            documents,
+            ["chunk_diagnostics", "structure_risk_counts"],
+        ),
+        "semantic_candidate_count": sum(
+            document["semantic_diagnostics"]["total_candidate_count"]
+            for document in documents
+        ),
+        "semantic_candidate_kind_counts": _sum_nested_counts(
+            documents,
+            ["semantic_diagnostics", "candidate_kind_counts"],
+        ),
+        "table_figure_candidate_count": sum(
+            document["table_figure_diagnostics"]["total_candidate_count"]
+            for document in documents
+        ),
+        "table_figure_candidate_kind_counts": _sum_nested_counts(
+            documents,
+            ["table_figure_diagnostics", "candidate_kind_counts"],
+        ),
+        "table_figure_risk_counts": _sum_nested_counts(
+            documents,
+            ["table_figure_diagnostics", "risk_code_counts"],
+        ),
+        "review_packet_count": sum(
+            document["review_packet_summary"]["total_packet_count"]
+            for document in documents
+        ),
+        "review_packet_reason_counts": _sum_nested_counts(
+            documents,
+            ["review_packet_summary", "reason_code_counts"],
+        ),
     }
+
+
+def _section_diagnostics(*, result: Any, text: str) -> Any:
+    if result is not None and result.pages:
+        return resolve_document_sections(result.pages)
+    return _section_diagnostics_from_pages([], text=text)
+
+
+def _section_diagnostics_from_pages(pages: Any, *, text: str) -> Any:
+    if isinstance(pages, list) and pages:
+        return resolve_document_sections(pages)
+    if text.strip():
+        return resolve_document_sections([
+            ExtractedPage(
+                page_number=1,
+                text=text,
+                char_count=len(text),
+                is_empty=False,
+            )
+        ])
+    return resolve_document_sections([])
+
+
+def _chunk_diagnostics(
+    *,
+    result: Any,
+    industrial_context: dict[str, Any],
+    parser_error: str | None,
+) -> dict[str, Any]:
+    if result is None or parser_error is not None:
+        chunks: list[RawChunk] = []
+    else:
+        chunks = chunk_extraction(result, industrial_context=industrial_context)
+    chunk_kind_counts = Counter(chunk.chunk_kind for chunk in chunks if chunk.chunk_kind)
+    structure_risk_counts = Counter(
+        risk_code
+        for chunk in chunks
+        for risk_code in chunk.structure_risk_codes
+    )
+    return {
+        "total_chunk_count": len(chunks),
+        "section_path_chunk_count": sum(1 for chunk in chunks if chunk.section_path),
+        "chunk_kind_counts": dict(sorted(chunk_kind_counts.items())),
+        "structure_risk_counts": dict(sorted(structure_risk_counts.items())),
+    }
+
+
+def _semantic_diagnostics(
+    *,
+    result: Any,
+    industrial_context: dict[str, Any],
+    parser_error: str | None,
+) -> dict[str, Any]:
+    if result is None or parser_error is not None:
+        return summarize_semantic_candidates([])
+    chunks = chunk_extraction(result, industrial_context=industrial_context)
+    candidates = extract_semantic_candidates(chunks)
+    return summarize_semantic_candidates(candidates)
+
+
+def _semantic_candidate_metadata(
+    *,
+    result: Any,
+    industrial_context: dict[str, Any],
+    parser_error: str | None,
+) -> list[dict[str, Any]]:
+    if result is None or parser_error is not None:
+        return []
+    chunks = chunk_extraction(result, industrial_context=industrial_context)
+    candidates = extract_semantic_candidates(chunks)
+    return semantic_candidates_to_metadata(candidates)
+
+
+def _table_figure_diagnostics(
+    *,
+    result: Any,
+    industrial_context: dict[str, Any],
+    parser_error: str | None,
+) -> dict[str, Any]:
+    if result is None or parser_error is not None:
+        return summarize_table_figure_candidates([])
+    chunks = chunk_extraction(result, industrial_context=industrial_context)
+    page_profiles = result.metadata.get("page_profiles")
+    page_profile_list = page_profiles if isinstance(page_profiles, list) else []
+    candidates = extract_table_figure_candidates(chunks, page_profiles=page_profile_list)
+    return summarize_table_figure_candidates(candidates)
+
+
+def _table_figure_candidate_metadata(
+    *,
+    result: Any,
+    industrial_context: dict[str, Any],
+    parser_error: str | None,
+) -> list[dict[str, Any]]:
+    if result is None or parser_error is not None:
+        return []
+    chunks = chunk_extraction(result, industrial_context=industrial_context)
+    page_profiles = result.metadata.get("page_profiles")
+    page_profile_list = page_profiles if isinstance(page_profiles, list) else []
+    candidates = extract_table_figure_candidates(chunks, page_profiles=page_profile_list)
+    return table_figure_candidates_to_metadata(candidates)
+
+
+def _review_packet_summary(
+    *,
+    document_id: str,
+    metadata: dict[str, Any],
+    gap_codes: list[str],
+    section_diagnostics: dict[str, Any],
+    semantic_candidates: list[dict[str, Any]],
+    table_figure_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    packets = build_review_packets(
+        document_id=document_id,
+        metadata={**metadata, "gap_codes": gap_codes},
+        section_diagnostics=section_diagnostics,
+        semantic_candidates=semantic_candidates,
+        table_figure_candidates=table_figure_candidates,
+    )
+    return summarize_review_packets(packets)
+
+
+def _sum_nested_counts(documents: list[dict[str, Any]], path: list[str]) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for document in documents:
+        node: Any = document
+        for key in path:
+            if not isinstance(node, dict):
+                node = {}
+                break
+            node = node.get(key, {})
+        if isinstance(node, dict):
+            counts.update({str(key): int(value) for key, value in node.items()})
+    return dict(sorted(counts.items()))
 
 
 def _mime_type(path: Path) -> str:
@@ -270,10 +540,17 @@ def _split_pages_extraction(
 ) -> dict[str, Any]:
     page_count = pdf_metrics.get("page_count")
     if not isinstance(page_count, int) or page_count <= 0:
-        return {"text": "", "page_ranges": []}
+        return {"text": "", "pages": [], "page_ranges": []}
     page_ranges = _two_worker_page_ranges(page_count)
-    text = _extract_pdf_text_with_workers(path=path, page_ranges=page_ranges)
-    return {"text": text, "page_ranges": [list(item) for item in page_ranges]}
+    pages = _extract_pdf_pages_with_workers(path=path, page_ranges=page_ranges)
+    text = "\n".join(page.text for page in pages if page.text)
+    text, _truncated = truncate_to_limit(text, 0)
+    return {
+        "text": text,
+        "pages": pages,
+        "page_profiles": _fallback_page_profiles(pages, pdf_metrics=pdf_metrics),
+        "page_ranges": [list(item) for item in page_ranges],
+    }
 
 
 def _two_worker_page_ranges(page_count: int) -> list[tuple[int, int]]:
@@ -286,29 +563,73 @@ def _extract_pdf_text_with_workers(
     path: Path,
     page_ranges: list[tuple[int, int]],
 ) -> str:
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        parts = list(executor.map(
-            lambda page_range: _extract_pdf_text_range(path, page_range),
-            page_ranges,
-        ))
-    text = "\n".join(part for part in parts if part)
+    pages = _extract_pdf_pages_with_workers(path=path, page_ranges=page_ranges)
+    text = "\n".join(page.text for page in pages if page.text)
     text, _truncated = truncate_to_limit(text, 0)
     return text
 
 
+def _extract_pdf_pages_with_workers(
+    *,
+    path: Path,
+    page_ranges: list[tuple[int, int]],
+) -> list[ExtractedPage]:
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        page_groups = list(executor.map(
+            lambda page_range: _extract_pdf_pages_range(path, page_range),
+            page_ranges,
+        ))
+    return [page for group in page_groups for page in group]
+
+
 def _extract_pdf_text_range(path: Path, page_range: tuple[int, int]) -> str:
+    return "\n".join(page.text for page in _extract_pdf_pages_range(path, page_range))
+
+
+def _extract_pdf_pages_range(path: Path, page_range: tuple[int, int]) -> list[ExtractedPage]:
     start, end = page_range
     try:
         import fitz
 
         with fitz.open(path) as document:
-            chunks = [
-                sanitize_text(document[index].get_text("text"))
-                for index in range(start, min(end, document.page_count))
-            ]
-        return "\n".join(chunk for chunk in chunks if chunk)
+            pages = []
+            for index in range(start, min(end, document.page_count)):
+                text = sanitize_text(document[index].get_text("text"))
+                pages.append(
+                    ExtractedPage(
+                        page_number=index + 1,
+                        text=text,
+                        char_count=len(text),
+                        is_empty=len(text) == 0,
+                    )
+                )
+        return pages
     except Exception:
-        return ""
+        return []
+
+
+def _fallback_page_profiles(
+    pages: list[ExtractedPage],
+    *,
+    pdf_metrics: dict[str, int] | dict[str, None],
+) -> list[dict[str, Any]]:
+    has_images = bool(pdf_metrics.get("embedded_image_count"))
+    profiles: list[dict[str, Any]] = []
+    for page in pages:
+        text_chars = len(page.text)
+        risk_codes: list[str] = []
+        if has_images and 0 < text_chars < 200:
+            risk_codes.append("sparse_text_with_images")
+            risk_codes.append("visual_content_without_caption")
+        profiles.append(
+            {
+                "page_number": page.page_number,
+                "text_chars": text_chars,
+                "image_count": 1 if has_images else 0,
+                "risk_codes": risk_codes,
+            }
+        )
+    return profiles
 
 
 def _page_count(result: Any) -> int:

@@ -69,6 +69,37 @@ def test_image_only_page_requires_ocr(tmp_path: Path) -> None:
     assert profile.table_risk is False
     assert profile.text_layer_type == "scanned_image"
     assert "ocr_required" in profile.risk_codes
+    assert "visual_content_without_caption" in profile.risk_codes
+
+
+def test_sparse_text_with_images_marks_visual_content_risk(tmp_path: Path) -> None:
+    path = tmp_path / "sparse_visual.pdf"
+    document = fitz.open()
+    page = document.new_page(width=300, height=300)
+    page.insert_text((72, 72), "Ver figura.")
+    page.insert_image(fitz.Rect(72, 120, 73, 121), stream=PNG_1X1)
+    document.save(path)
+    document.close()
+
+    profile = profile_pdf_pages(path)[0]
+
+    assert "sparse_text_with_images" in profile.risk_codes
+    assert "visual_content_without_caption" in profile.risk_codes
+
+
+def test_sparse_text_with_caption_does_not_mark_visual_content_risk(tmp_path: Path) -> None:
+    path = tmp_path / "captioned_visual.pdf"
+    document = fitz.open()
+    page = document.new_page(width=300, height=300)
+    page.insert_text((72, 72), "Figura 1 - Painel eletrico.")
+    page.insert_image(fitz.Rect(72, 120, 73, 121), stream=PNG_1X1)
+    document.save(path)
+    document.close()
+
+    profile = profile_pdf_pages(path)[0]
+
+    assert "sparse_text_with_images" in profile.risk_codes
+    assert "visual_content_without_caption" not in profile.risk_codes
 
 
 def test_summarize_page_profiles_for_mixed_pdf(tmp_path: Path) -> None:
@@ -100,6 +131,7 @@ def test_summarize_page_profiles_for_mixed_pdf(tmp_path: Path) -> None:
     assert summary["risk_codes"] == summary["risk_code_counts"]
     assert summary["risk_codes"] is not summary["risk_code_counts"]
     assert summary["risk_code_counts"]["ocr_required"] == 1
+    assert "visual_content_without_caption" in summary["risk_code_counts"]
 
 
 def test_profile_fitz_document_limits_pages_and_metadata_is_stable() -> None:

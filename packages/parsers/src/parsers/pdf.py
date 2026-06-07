@@ -10,6 +10,10 @@ from parsers.base import (
     sanitize_text,
     truncate_to_limit,
 )
+from parsers.industrial_sections import (
+    resolve_document_sections,
+    section_diagnostics_to_metadata,
+)
 from parsers.page_profile import (
     page_profiles_to_metadata,
     profile_fitz_document,
@@ -52,6 +56,7 @@ class PDFParser(BaseParser):
                     if total_chars >= MAX_EXTRACTED_CHARS:
                         break
 
+                section_diagnostics = resolve_document_sections(pages)
                 return ExtractionResult(
                     mime_type=PDF_MIME,
                     pages=pages,
@@ -61,6 +66,7 @@ class PDFParser(BaseParser):
                         "parser": "pdf",
                         "page_profiles": page_profiles_to_metadata(page_profiles),
                         "page_profile_summary": summarize_page_profiles(page_profiles),
+                        "section_diagnostics": section_diagnostics_to_metadata(section_diagnostics),
                     },
                 )
         except Exception:

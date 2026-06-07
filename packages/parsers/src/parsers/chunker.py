@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
+from typing import Any
 
 from parsers.base import ExtractedPage, ExtractedSheet, ExtractionResult, sanitize_text
 
@@ -23,6 +24,12 @@ class RawChunk:
     row_end: int | None
     section_heading: str | None
     metadata: dict[str, object]
+    page_start: int | None = None
+    page_end: int | None = None
+    section_path: str | None = None
+    section_title: str | None = None
+    chunk_kind: str | None = None
+    structure_risk_codes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -34,9 +41,20 @@ class _ChunkDraft:
     row_end: int | None
     section_heading: str | None
     order: tuple[int, int, int]
+    page_start: int | None = None
+    page_end: int | None = None
+    section_path: str | None = None
+    section_title: str | None = None
+    chunk_kind: str | None = None
+    structure_risk_codes: tuple[str, ...] = ()
 
 
-def chunk_extraction(result: ExtractionResult, *, source_version: int = 1) -> list[RawChunk]:
+def chunk_extraction(
+    result: ExtractionResult,
+    *,
+    source_version: int = 1,
+    industrial_context: dict[str, Any] | None = None,
+) -> list[RawChunk]:
     if result.error is not None:
         return []
 
@@ -48,15 +66,36 @@ def chunk_extraction(result: ExtractionResult, *, source_version: int = 1) -> li
         "extraction_timestamp": timestamp,
     }
 
+    effective_industrial_context = _effective_industrial_context(result, industrial_context)
+    if effective_industrial_context is not None and result.pages:
+        drafts = _chunk_industrial_pages(result.pages, effective_industrial_context)
+        if not drafts:
+            drafts = _chunk_generic_content(result)
+    else:
+        drafts = _chunk_generic_content(result)
+
+    merged = _merge_short_chunks(drafts)
+    ordered = sorted(merged, key=lambda draft: draft.order)
+    return [_finalize_chunk(index, draft, metadata) for index, draft in enumerate(ordered)]
+
+
+def _chunk_generic_content(result: ExtractionResult) -> list[_ChunkDraft]:
     drafts: list[_ChunkDraft] = []
     for page_order, page in enumerate(result.pages):
         drafts.extend(_chunk_page(page, page_order))
     for sheet_order, sheet in enumerate(result.sheets):
         drafts.extend(_chunk_sheet(sheet, sheet_order))
+    return drafts
 
-    merged = _merge_short_chunks(drafts)
-    ordered = sorted(merged, key=lambda draft: draft.order)
-    return [_finalize_chunk(index, draft, metadata) for index, draft in enumerate(ordered)]
+
+def _effective_industrial_context(
+    result: ExtractionResult,
+    industrial_context: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if industrial_context is not None:
+        return industrial_context
+    section_diagnostics = result.metadata.get("section_diagnostics")
+    return section_diagnostics if isinstance(section_diagnostics, dict) else None
 
 
 def _parser_name(result: ExtractionResult) -> str:
@@ -88,6 +127,148 @@ def _chunk_page(page: ExtractedPage, page_order: int) -> list[_ChunkDraft]:
                 )
             )
     return drafts
+
+
+def _chunk_industrial_pages(
+    pages: list[ExtractedPage],
+    industrial_context: dict[str, Any],
+) -> list[_ChunkDraft]:
+    section_spans = _normalized_section_spans(industrial_context.get("section_spans"))
+    if not section_spans:
+        return []
+
+    page_lines = {
+        page.page_number: page.text.splitlines()
+        for page in pages
+    }
+    boilerplate_positions = {
+        (page_number, line_index)
+        for span in _context_list(industrial_context.get("boilerplate_spans"))
+        if (page_number := _safe_int(span.get("page_number"))) is not None
+        and (line_index := _safe_int(span.get("line_index"))) is not None
+    }
+    sorted_spans = sorted(
+        section_spans,
+        key=lambda span: (
+            span["page_start"],
+            span["line_index"],
+            span["section_path"],
+        ),
+    )
+    drafts: list[_ChunkDraft] = []
+    for span_index, span in enumerate(sorted_spans):
+        page_start = span["page_start"]
+        page_end = span["page_end"]
+        next_span = sorted_spans[span_index + 1] if span_index + 1 < len(sorted_spans) else None
+        text = _section_text(
+            page_lines=page_lines,
+            boilerplate_positions=boilerplate_positions,
+            span=span,
+            next_span=next_span,
+            page_start=page_start,
+            page_end=page_end,
+        )
+        if not text:
+            continue
+        for block_order, block in enumerate(_split_text_block(text)):
+            drafts.append(
+                _ChunkDraft(
+                    text=block,
+                    source_page=page_start,
+                    sheet_name=None,
+                    row_start=None,
+                    row_end=None,
+                    section_heading=span["section_title"],
+                    order=(page_start - 1, span["line_index"], block_order),
+                    page_start=page_start,
+                    page_end=page_end,
+                    section_path=span["section_path"],
+                    section_title=span["section_title"],
+                    chunk_kind=span["kind"],
+                    structure_risk_codes=span["risk_codes"],
+                )
+            )
+    return drafts
+
+
+def _section_text(
+    *,
+    page_lines: dict[int, list[str]],
+    boilerplate_positions: set[tuple[int, int]],
+    span: dict[str, Any],
+    next_span: dict[str, Any] | None,
+    page_start: int,
+    page_end: int,
+) -> str:
+    start_line = int(span.get("line_index") or 0)
+    next_page = int(next_span.get("page_start") or next_span.get("page_number") or 0) if next_span else None
+    next_line = int(next_span.get("line_index") or 0) if next_span else None
+    selected: list[str] = []
+    for page_number in range(page_start, page_end + 1):
+        lines = page_lines.get(page_number, [])
+        if not lines:
+            continue
+        line_start = start_line if page_number == page_start else 0
+        line_end = len(lines)
+        if next_page == page_number and next_line is not None:
+            line_end = min(line_end, next_line)
+        for line_index in range(line_start, line_end):
+            if (page_number, line_index) in boilerplate_positions:
+                continue
+            line = sanitize_text(lines[line_index])
+            if line:
+                selected.append(line)
+    return sanitize_text("\n".join(selected))
+
+
+def _context_list(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _normalized_section_spans(value: Any) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for span in _context_list(value):
+        page_start = _safe_int(span.get("page_start")) or _safe_int(span.get("page_number"))
+        line_index = _safe_int(span.get("line_index"))
+        if page_start is None or line_index is None:
+            continue
+        section_path = _optional_string(span.get("section_path"))
+        section_title = _optional_string(span.get("section_title")) or _optional_string(span.get("title"))
+        kind = _optional_string(span.get("kind"))
+        if section_path is None or section_title is None or kind is None:
+            continue
+        page_end = _safe_int(span.get("page_end")) or page_start
+        normalized.append(
+            {
+                "kind": kind,
+                "line_index": line_index,
+                "page_start": page_start,
+                "page_end": page_end,
+                "section_path": section_path,
+                "section_title": section_title,
+                "risk_codes": _risk_codes(span.get("risk_codes")),
+            }
+        )
+    return normalized
+
+
+def _optional_string(value: Any) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def _safe_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _risk_codes(value: Any) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        return ()
+    return tuple(sorted({str(item) for item in value if str(item)}))
 
 
 def _split_sections(text: str) -> list[tuple[str | None, str]]:
@@ -194,6 +375,11 @@ def _merge_short_chunks(drafts: list[_ChunkDraft]) -> list[_ChunkDraft]:
             continue
 
         nxt = drafts[index + 1]
+        if current.section_path != nxt.section_path:
+            if current.text.strip():
+                merged.append(current)
+            index += 1
+            continue
         combined = _ChunkDraft(
             text=sanitize_text(f"{current.text}\n\n{nxt.text}"),
             source_page=current.source_page,
@@ -202,6 +388,15 @@ def _merge_short_chunks(drafts: list[_ChunkDraft]) -> list[_ChunkDraft]:
             row_end=nxt.row_end or current.row_end,
             section_heading=current.section_heading or nxt.section_heading,
             order=current.order,
+            page_start=current.page_start or nxt.page_start,
+            page_end=nxt.page_end or current.page_end,
+            section_path=current.section_path or nxt.section_path,
+            section_title=current.section_title or nxt.section_title,
+            chunk_kind=current.chunk_kind or nxt.chunk_kind,
+            structure_risk_codes=tuple(sorted({
+                *current.structure_risk_codes,
+                *nxt.structure_risk_codes,
+            })),
         )
         drafts[index + 1] = combined
         index += 1
@@ -210,6 +405,19 @@ def _merge_short_chunks(drafts: list[_ChunkDraft]) -> list[_ChunkDraft]:
 
 def _finalize_chunk(index: int, draft: _ChunkDraft, metadata: dict[str, object]) -> RawChunk:
     text = sanitize_text(draft.text)
+    chunk_metadata = dict(metadata)
+    if draft.page_start is not None:
+        chunk_metadata["page_start"] = draft.page_start
+    if draft.page_end is not None:
+        chunk_metadata["page_end"] = draft.page_end
+    if draft.section_path is not None:
+        chunk_metadata["section_path"] = draft.section_path
+    if draft.section_title is not None:
+        chunk_metadata["section_title"] = draft.section_title
+    if draft.chunk_kind is not None:
+        chunk_metadata["chunk_kind"] = draft.chunk_kind
+    if draft.structure_risk_codes:
+        chunk_metadata["structure_risk_codes"] = list(draft.structure_risk_codes)
     return RawChunk(
         chunk_index=index,
         text=text,
@@ -221,7 +429,13 @@ def _finalize_chunk(index: int, draft: _ChunkDraft, metadata: dict[str, object])
         row_start=draft.row_start,
         row_end=draft.row_end,
         section_heading=draft.section_heading,
-        metadata=dict(metadata),
+        metadata=chunk_metadata,
+        page_start=draft.page_start,
+        page_end=draft.page_end,
+        section_path=draft.section_path,
+        section_title=draft.section_title,
+        chunk_kind=draft.chunk_kind,
+        structure_risk_codes=draft.structure_risk_codes,
     )
 
 

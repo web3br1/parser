@@ -71,6 +71,7 @@ def test_pdf_parser_adds_page_profile_metadata(tmp_path: Path) -> None:
             "high_layout_complexity": 0,
             "table_candidates_present": 1,
             "sparse_text_with_images": 0,
+            "visual_content_without_caption": 0,
         },
         "risk_codes": {
             "empty_page": 0,
@@ -79,8 +80,41 @@ def test_pdf_parser_adds_page_profile_metadata(tmp_path: Path) -> None:
             "high_layout_complexity": 0,
             "table_candidates_present": 1,
             "sparse_text_with_images": 0,
+            "visual_content_without_caption": 0,
         },
     }
+
+
+def test_pdf_parser_adds_section_diagnostics_without_changing_text(tmp_path: Path) -> None:
+    path = tmp_path / "sectioned.pdf"
+    document = fitz.open()
+    page = document.new_page(width=600, height=800)
+    page.insert_text((72, 40), "ACME QMS Manual")
+    page.insert_text((72, 120), "1 Objetivo")
+    page.insert_text((72, 160), "Definir controles do procedimento.")
+    page.insert_text((72, 760), "Pagina 1 de 2")
+    page = document.new_page(width=600, height=800)
+    page.insert_text((72, 40), "ACME QMS Manual")
+    page.insert_text((72, 120), "1.1 Aplicacao")
+    page.insert_text((72, 160), "Aplica-se a producao industrial.")
+    page.insert_text((72, 760), "Pagina 2 de 2")
+    document.save(path)
+
+    result = PDFParser().extract(path)
+
+    assert result.error is None
+    assert "ACME QMS Manual" in result.pages[0].text
+    assert "Pagina 1 de 2" in result.pages[0].text
+    diagnostics = result.metadata["section_diagnostics"]
+    assert diagnostics["summary"]["section_count"] == 2
+    assert diagnostics["summary"]["boilerplate_counts"] == {"footer": 2, "header": 2}
+    assert [
+        (span["section_path"], span["section_title"], span["page_start"], span["page_end"])
+        for span in diagnostics["section_spans"]
+    ] == [
+        ("1", "Objetivo", 1, 1),
+        ("1/1.1", "Aplicacao", 2, 2),
+    ]
 
 
 def test_image_only_pdf_keeps_empty_page(tmp_path: Path) -> None:

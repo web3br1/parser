@@ -66,10 +66,12 @@ def test_benchmark_writes_stable_json_shape_for_successful_document(tmp_path: Pa
             "Revisao: 04",
             "Titulo: Controle de Nao Conformidades",
             "Area dona: Qualidade",
-            "Status: Vigente",
-            "1.1 Objetivo",
-            "Controlar nao conformidades.",
-        ]),
+                "Status: Vigente",
+                "1.1 Objetivo",
+                "Item    Responsavel    Status",
+                "Toda nao conformidade deve ser registrada.",
+                "Figura 1 - Fluxo de registro de NC.",
+            ]),
         encoding="utf-8",
     )
 
@@ -100,6 +102,24 @@ def test_benchmark_writes_stable_json_shape_for_successful_document(tmp_path: Pa
     assert document["page_profile_summary"] == DEFAULT_PAGE_PROFILE_SUMMARY
     assert document["gap_codes"] == []
     assert document["structure_hint_count"] >= 1
+    assert document["section_diagnostics"]["summary"]["section_count"] >= 1
+    assert document["section_diagnostics"]["summary"]["section_path_count"] >= 1
+    assert document["chunk_diagnostics"]["total_chunk_count"] >= 1
+    assert document["chunk_diagnostics"]["section_path_chunk_count"] >= 1
+    assert document["semantic_diagnostics"]["total_candidate_count"] >= 1
+    assert "candidate_kind_counts" in document["semantic_diagnostics"]
+    assert document["table_figure_diagnostics"]["total_candidate_count"] >= 1
+    assert "candidate_kind_counts" in document["table_figure_diagnostics"]
+    assert "total_packet_count" in document["review_packet_summary"]
+    assert "reason_code_counts" in document["review_packet_summary"]
+    assert "section_count" in report["summary"]
+    assert report["summary"]["section_count"] >= 1
+    assert report["summary"]["chunk_count"] >= 1
+    assert report["summary"]["section_path_chunk_count"] >= 1
+    assert report["summary"]["semantic_candidate_count"] >= 1
+    assert report["summary"]["table_figure_candidate_count"] >= 1
+    assert "review_packet_count" in report["summary"]
+    assert "review_packet_reason_counts" in report["summary"]
     assert "elapsed_ms" in document
     assert str(tmp_path) not in output.read_text(encoding="utf-8")
 
@@ -145,9 +165,32 @@ def test_benchmark_splits_pages_exceeded_pdf_across_two_workers(
         "page_count": 374,
         "embedded_image_count": 306,
     }
-    benchmark._extract_pdf_text_with_workers = lambda **_kwargs: "Codigo: POP-PMPR-001\nRevisao: 01\n" + (
-        "procedimento operacional com fotos\n" * 8
-    )
+    benchmark._extract_pdf_pages_with_workers = lambda **_kwargs: [
+        ExtractedPage(
+            page_number=1,
+            text=(
+                "ACME QMS\n"
+                "Codigo: POP-PMPR-001\n"
+                "Revisao: 01\n"
+                "1 Objetivo\n"
+                "procedimento operacional com fotos\n"
+                "Documento controlado"
+            ),
+            char_count=132,
+            is_empty=False,
+        ),
+        ExtractedPage(
+            page_number=2,
+            text=(
+                "ACME QMS\n"
+                "1.1 Aplicacao\n"
+                + ("procedimento operacional com fotos\n" * 4)
+                + "Documento controlado"
+            ),
+            char_count=169,
+            is_empty=False,
+        ),
+    ]
 
     code = run_cli(benchmark, ["--input-dir", str(input_dir), "--output", str(output)])
 
@@ -166,6 +209,14 @@ def test_benchmark_splits_pages_exceeded_pdf_across_two_workers(
     assert document["page_count"] == 374
     assert document["embedded_image_count"] == 306
     assert document["page_profile_summary"] == DEFAULT_PAGE_PROFILE_SUMMARY
+    assert document["section_diagnostics"]["summary"]["boilerplate_counts"] == {
+        "footer": 2,
+        "header": 2,
+    }
+    assert [
+        (span["section_path"], span["page_start"])
+        for span in document["section_diagnostics"]["section_spans"]
+    ] == [("1", 1), ("1/1.1", 2)]
     assert document["quality"]["passed"] is True
     assert document["quality"]["rejection_reason"] is None
     assert document["extracted_char_count"] > 100
