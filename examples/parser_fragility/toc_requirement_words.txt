@@ -1,0 +1,10 @@
+Titulo: Procedimento de Registro de Incidentes
+
+Sumario
+5.1 Deve registrar incidentes ................ 3
+5.2 Deve comunicar supervisor ................ 4
+5.3 Deve arquivar evidencias ................. 5
+
+5 Corpo do procedimento
+O colaborador registra o incidente no formulario vigente.
+O supervisor revisa o registro quando houver material retido.

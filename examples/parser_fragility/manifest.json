@@ -1,0 +1,134 @@
+{
+  "fixture_pack_id": "parser_fragility.v1",
+  "language": "pt-BR",
+  "documents": [
+    {
+      "filename": "multi_document_appendix_codes.txt",
+      "scenario": "multi_document_appendix_code_ambiguity",
+      "fragility_ids": ["PF-001"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["multiple_nested_pop_codes", "missing_file_level_document_code"]
+      },
+      "negative_expectations": {
+        "must_not_promote_document_code": "Do not promote POP 101 or POP 102 as the file-level document_code."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "toc_requirement_words.txt",
+      "scenario": "toc_requirement_contamination",
+      "fragility_ids": ["PF-002"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["toc_lines_with_normative_verbs"]
+      },
+      "negative_expectations": {
+        "must_not_promote_toc_requirement": "Do not promote Sumario dot-leader lines as requirement candidates."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "repeated_boilerplate_sections.txt",
+      "scenario": "repeated_header_footer_contamination",
+      "fragility_ids": ["PF-003"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["repeated_header_quote", "distinct_body_sections"]
+      },
+      "negative_expectations": {
+        "must_not_promote_boilerplate_candidate": "Do not promote the repeated header as a body chunk or semantic candidate."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "figure_reference_without_caption.txt",
+      "scenario": "figure_reference_without_visual_evidence",
+      "fragility_ids": ["PF-004"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["figure_reference_without_caption"]
+      },
+      "negative_expectations": {
+        "must_not_claim_visual_understanding": "Do not claim visual evidence or inspected pixels from a figure reference alone."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "sparse_visual_placeholder.txt",
+      "scenario": "sparse_image_placeholder_review_risk",
+      "fragility_ids": ["PF-007"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["sparse_image_only_placeholder", "ocr_required_review_risk"]
+      },
+      "negative_expectations": {
+        "must_not_claim_clean_text_extraction": "Do not claim the placeholder page was cleanly extracted as complete text."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "section_hierarchy_gap.txt",
+      "scenario": "section_hierarchy_gap",
+      "fragility_ids": ["PF-005"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["child_sections_without_parent_section"]
+      },
+      "negative_expectations": {
+        "must_not_claim_grouping_clean": "Do not claim hierarchy packets are clean when parent section 5 is absent."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "evidence_boundary_drift.txt",
+      "scenario": "evidence_quote_boundary_drift",
+      "fragility_ids": ["PF-006"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["duplicate_quote_on_multiple_pages", "page_specific_qualifier"]
+      },
+      "negative_expectations": {
+        "must_not_claim_quote_on_wrong_page": "Do not claim an evidence quote belongs to page 1 when its qualifier only appears on page 2."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    },
+    {
+      "filename": "split_stress_surrogate.txt",
+      "scenario": "split_document_stress_surrogate",
+      "fragility_ids": ["PF-008"],
+      "fixture_kind": "synthetic_text",
+      "positive_expectations": {
+        "should_expose": ["range_boundary_markers", "late_range_diagnostics"]
+      },
+      "negative_expectations": {
+        "must_not_claim_split_diagnostics_complete_without_ranges": "Do not claim split fallback diagnostics are complete when range summaries are missing."
+      },
+      "invariant_expectations": {
+        "max_fixture_bytes": 2500,
+        "deterministic_text_only": true
+      }
+    }
+  ]
+}

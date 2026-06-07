@@ -1,0 +1,17 @@
+Pagina 1
+Cabecalho: Toda NC deve ser registrada
+1 Recebimento
+Registrar numero do lote e data de recebimento.
+Rodape: copia controlada
+
+Pagina 2
+Cabecalho: Toda NC deve ser registrada
+2 Analise
+Descrever causa provavel e acao imediata.
+Rodape: copia controlada
+
+Pagina 3
+Cabecalho: Toda NC deve ser registrada
+3 Encerramento
+Anexar evidencia de verificacao da acao.
+Rodape: copia controlada

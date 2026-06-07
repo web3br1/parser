@@ -1,0 +1,9 @@
+Titulo: Inspecao de embalagem
+
+3 Verificacao visual
+A equipe deve comparar a posicao do selo com a Figura 3.
+
+[FIGURA 3: area reservada para imagem sem legenda descritiva]
+
+Nao ha legenda explicando defeito, medida, cor, resultado ou criterio visual.
+Texto disponivel apenas referencia a figura.

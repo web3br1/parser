@@ -1,0 +1,14 @@
+Titulo: Compilado de POPs - Apêndice de Treinamento
+Documento principal: sem codigo unico no cabecalho
+
+Sumario
+1. POP 101 - Higienizacao de bancada ........ 2
+2. POP 102 - Conferencia de rotulos ........ 4
+
+Anexo A - POP 101
+Codigo interno: POP 101
+Objetivo: orientar a limpeza antes do turno.
+
+Anexo B - POP 102
+Codigo interno: POP 102
+Objetivo: orientar a conferencia antes da liberacao.

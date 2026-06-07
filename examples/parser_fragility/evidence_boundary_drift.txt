@@ -1,0 +1,11 @@
+Pagina 1
+4.1 Requisito
+Deve registrar a temperatura antes da liberacao.
+Qualificador: aplica-se ao almoxarifado.
+
+Pagina 2
+4.1 Requisito
+Deve registrar a temperatura antes da liberacao.
+Qualificador: aplica-se a sala limpa antes da etapa final.
+
+Nota: a frase exigida se repete, mas o qualificador muda por pagina.

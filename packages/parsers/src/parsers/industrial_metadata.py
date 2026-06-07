@@ -72,6 +72,7 @@ HEADER_LABELS = (
     + ("pagina", "pagina total", "data", "responsavel nome", "aprovacao nome")
 )
 DASH_TRANSLATIONS = ("\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2212")
+NESTED_DOCUMENT_CODE_TYPES = {"POP", "IT", "MAN", "MANUAL", "POL", "PTC"}
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,7 @@ def extract_metadata_candidates(*, filename: str, text: str) -> IndustrialMetada
     status = _status(haystack, labeled)
     title = _first_labeled(labeled, TITLE_LABELS)
     owner_area = _first_labeled(labeled, OWNER_LABELS)
-    gap_codes = _gap_codes(code=code, revision=revision)
+    gap_codes = _gap_codes(code=code, revision=revision, text=text)
     return IndustrialMetadataCandidate(
         document_code=code,
         document_type=document_type,
@@ -137,10 +138,12 @@ def _first_document_code(*, filename: str, text: str, labeled: dict[str, str]) -
     code = _document_code_near_label(text)
     if code:
         return code
-    code = _document_code_in_header(text)
+    code = _find_document_code(filename, allow_compact=True)
     if code:
         return code
-    code = _find_document_code(filename, allow_compact=True)
+    if _has_multiple_nested_document_codes(text):
+        return None
+    code = _document_code_in_header(text)
     if code:
         return code
     return None
@@ -206,10 +209,12 @@ def _first_labeled(labeled: dict[str, str], labels: tuple[str, ...]) -> str | No
     return None
 
 
-def _gap_codes(*, code: str | None, revision: str | None) -> list[str]:
+def _gap_codes(*, code: str | None, revision: str | None, text: str) -> list[str]:
     gaps: list[str] = []
     if code is None:
         gaps.append("missing_document_code")
+        if _has_multiple_nested_document_codes(text):
+            gaps.append("ambiguous_nested_document_codes")
     if revision is None:
         gaps.append("missing_revision")
     return gaps
@@ -226,6 +231,28 @@ def _find_document_code(value: str, *, allow_compact: bool) -> str | None:
         if match:
             return _normalize_document_code(match.group(0))
     return None
+
+
+def _has_multiple_nested_document_codes(text: str) -> bool:
+    codes = {
+        code
+        for code in _document_codes_in_text(text)
+        if _document_code_prefix(code) in NESTED_DOCUMENT_CODE_TYPES
+    }
+    return len(codes) >= 2
+
+
+def _document_codes_in_text(value: str) -> list[str]:
+    normalized = _normalize_search_text(value)
+    codes: list[str] = []
+    for pattern in (DOCUMENT_CODE_RE, PROTOCOL_CODE_RE):
+        for match in pattern.finditer(normalized):
+            codes.append(_normalize_document_code(match.group(0)))
+    return codes
+
+
+def _document_code_prefix(code: str) -> str:
+    return re.split(r"[- .]", code, maxsplit=1)[0].upper()
 
 
 def _document_code_near_label(text: str) -> str | None:

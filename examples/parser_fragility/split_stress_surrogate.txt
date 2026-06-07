@@ -1,0 +1,13 @@
+Titulo: Surrogate de divisao por faixas
+
+Faixa 1: paginas 1-3
+Pagina 1: texto comum.
+Pagina 2: texto comum.
+Pagina 3: fim da primeira faixa.
+
+Faixa 2: paginas 4-6
+Pagina 4: [IMAGEM-APENAS: etiqueta sem texto extraivel]
+Pagina 5: 8.2 Subsecao sem secao pai 8.
+Pagina 6: erro parser simulado deve ficar associado a faixa 2.
+
+Expectativa: diagnosticos da faixa 2 nao podem desaparecer no resumo final.

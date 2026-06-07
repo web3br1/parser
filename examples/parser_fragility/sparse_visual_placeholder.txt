@@ -1,0 +1,9 @@
+Titulo: Perfil de pagina com risco visual
+
+Pagina 1
+[IMAGEM-APENAS: fotografia de etiqueta retida, sem camada de texto]
+
+Pagina 2
+Observacao textual curta: revisar imagem da pagina anterior antes de concluir.
+
+Risco esperado: a pagina 1 precisa de revisao/OCR; nao e prova de extracao textual completa.

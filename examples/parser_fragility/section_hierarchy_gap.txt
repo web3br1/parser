@@ -1,0 +1,12 @@
+Titulo: Abertura de desvios
+
+5.2 Registro inicial
+Registrar desvio no formulario FOR-QA-002.
+
+5.3 Analise preliminar
+Classificar impacto em produto, processo ou documento.
+
+5.4 Encerramento
+Anexar evidencia da acao tomada.
+
+Observacao: a secao pai 5 nao aparece neste recorte.
