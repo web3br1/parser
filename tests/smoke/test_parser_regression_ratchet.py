@@ -361,3 +361,21 @@ def test_committed_baseline_contains_no_private_or_dirty_paths() -> None:
     assert "C:\\" not in payload
     assert ".run/" not in payload
     assert ".run\\" not in payload
+
+
+def test_ratchet_bootstraps_parser_source_path_for_standalone_cli() -> None:
+    ratchet = load_ratchet()
+    parser_src = ROOT / "packages" / "parsers" / "src"
+    original_path = list(sys.path)
+    sys.path = [
+        path
+        for path in sys.path
+        if Path(path).resolve() != parser_src
+    ]
+
+    try:
+        ratchet._ensure_parser_src_on_path(ROOT)
+
+        assert sys.path[0] == str(parser_src)
+    finally:
+        sys.path = original_path

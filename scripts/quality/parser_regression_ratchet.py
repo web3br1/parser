@@ -126,6 +126,7 @@ def build_current_signals(
     repo_root: Path,
     dirty_corpus_dir: Path | None = None,
 ) -> dict[str, Any]:
+    _ensure_parser_src_on_path(repo_root)
     fixture_dir = repo_root / "examples" / "parser_fragility"
     manifest = _read_json(fixture_dir / "manifest.json")
     documents = [
@@ -647,6 +648,13 @@ def _benchmark_schema_version(repo_root: Path) -> str:
     sys.modules["industrial_dirty_benchmark_schema_under_ratchet"] = module
     spec.loader.exec_module(module)
     return str(module.SCHEMA_VERSION)
+
+
+def _ensure_parser_src_on_path(repo_root: Path) -> None:
+    parser_src = repo_root / "packages" / "parsers" / "src"
+    parser_src_text = str(parser_src)
+    if parser_src_text not in sys.path:
+        sys.path.insert(0, parser_src_text)
 
 
 def _pages_from_fixture_text(text: str, *, extracted_page_type: Any) -> list[Any]:

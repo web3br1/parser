@@ -347,3 +347,20 @@ def test_benchmark_records_metadata_gaps_and_known_findings(tmp_path: Path) -> N
             "actual": None,
         }
     ]
+
+
+def test_benchmark_bootstraps_parser_source_path_for_standalone_cli() -> None:
+    parser_src = ROOT / "packages" / "parsers" / "src"
+    original_path = list(sys.path)
+    sys.path = [
+        path
+        for path in sys.path
+        if Path(path).resolve() != parser_src
+    ]
+
+    try:
+        load_benchmark()
+
+        assert sys.path[0] == str(parser_src)
+    finally:
+        sys.path = original_path

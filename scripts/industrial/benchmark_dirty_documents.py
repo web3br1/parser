@@ -1,9 +1,12 @@
+# ruff: noqa: E402
+
 from __future__ import annotations
 
 import argparse
 import json
 import mimetypes
 import re
+import sys
 import time
 from collections import Counter
 from collections.abc import Sequence
@@ -11,6 +14,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PARSERS_SRC = REPO_ROOT / "packages" / "parsers" / "src"
+if str(PARSERS_SRC) not in sys.path:
+    sys.path.insert(0, str(PARSERS_SRC))
 
 from parsers import UnsupportedMimeError, get_parser
 from parsers.base import (
