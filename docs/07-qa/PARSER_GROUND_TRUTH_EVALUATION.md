@@ -88,6 +88,11 @@ them.
 Supported expected item kinds:
 
 - `metadata`: `document_code`, `revision`;
+- `quality_profile`: parser-wide boolean signals such as
+  `document_family_candidate`, `unsafe_file_metadata_blocked`,
+  `review_required` and `publication_blocking_risk`;
+- `nested_identifier`: internal identifier candidates preserved as evidence,
+  currently with type `identifier`;
 - `section`: `section_path`;
 - `semantic`: parser semantic candidate kind, such as `requirement` or
   `form_reference`;
@@ -98,6 +103,11 @@ Supported expected item kinds:
 Negative expectations use `"negative": true`. If the parser predicts a
 negative item, the report increments `critical_false_positives` and the gate
 fails.
+
+Parser-wide quality closure fixtures should use negative `metadata`
+expectations to prove unsafe file-level promotions are blocked. For example, a
+collection fixture may expect `nested_identifier|identifier|POP 101` while also
+declaring `metadata|document_code|POP 101` as negative.
 
 ## Gates
 

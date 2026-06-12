@@ -1048,6 +1048,32 @@ def test_context_bundle_industrial_ambiguous_vigent_revision_gap_blocks_readines
     assert "industrial_ambiguous_vigent_revision" in bundle.readiness.blocking_reasons
 
 
+def test_context_bundle_parser_document_family_gap_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[],
+        rules=[],
+        evidence=[],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+        gaps=[
+            {
+                "id": "gap-document-family",
+                "kind": "parser_document_family_requires_review",
+                "description": "Collection-like parser artifact requires review before publication.",
+                "severity": "high",
+                "status": "open",
+            }
+        ],
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "parser_document_family_requires_review" in bundle.readiness.blocking_reasons
+
+
 def test_context_bundle_service_loads_published_rows_and_audits_export() -> None:
     from context_builder.services.context_bundle_service import build_context_bundle
 
