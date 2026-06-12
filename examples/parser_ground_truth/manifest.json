@@ -1,0 +1,96 @@
+{
+  "documents": [
+    {
+      "expected": [
+        {
+          "canonical": "POP-QA-014",
+          "kind": "metadata",
+          "type": "document_code"
+        },
+        {
+          "canonical": "04",
+          "kind": "metadata",
+          "type": "revision"
+        },
+        {
+          "canonical": "1",
+          "kind": "section",
+          "type": "section_path"
+        },
+        {
+          "canonical": "1/1.1",
+          "kind": "section",
+          "type": "section_path"
+        },
+        {
+          "canonical": "Toda nao conformidade deve ser registrada.",
+          "kind": "semantic",
+          "type": "requirement"
+        },
+        {
+          "canonical": "O Supervisor deve revisar o registro antes da liberacao.",
+          "kind": "semantic",
+          "type": "requirement"
+        },
+        {
+          "canonical": "FOR-QA-002",
+          "kind": "semantic",
+          "type": "form_reference"
+        },
+        {
+          "canonical": "table_present",
+          "kind": "table_figure",
+          "type": "text_table"
+        },
+        {
+          "canonical": "Figura 1",
+          "kind": "table_figure",
+          "type": "figure_reference"
+        },
+        {
+          "canonical": "missing_metadata",
+          "kind": "review_packet",
+          "negative": true,
+          "type": "reason_code"
+        }
+      ],
+      "expected_code": "POP-QA-014",
+      "expected_processing_mode": "single_parser",
+      "expected_revision": "04",
+      "filename": "POP-QA-014_Rev04_vigent.txt"
+    },
+    {
+      "expected": [
+        {
+          "canonical": "POP 101",
+          "kind": "metadata",
+          "negative": true,
+          "type": "document_code"
+        },
+        {
+          "canonical": "5.1 Deve registrar incidentes",
+          "kind": "semantic",
+          "negative": true,
+          "type": "requirement"
+        },
+        {
+          "canonical": "ambiguous_metadata",
+          "kind": "review_packet",
+          "type": "reason_code"
+        },
+        {
+          "canonical": "ambiguous_section_hierarchy",
+          "kind": "review_packet",
+          "type": "reason_code"
+        },
+        {
+          "canonical": "missing_metadata",
+          "kind": "review_packet",
+          "type": "reason_code"
+        }
+      ],
+      "filename": "toc_noise.txt"
+    }
+  ],
+  "schema_version": "parser_ground_truth_manifest.v1"
+}

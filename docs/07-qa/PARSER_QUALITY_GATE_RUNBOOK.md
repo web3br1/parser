@@ -43,6 +43,7 @@ directory is absent, the layer is reported as skipped with
 | `fixtures` | yes | Validates deterministic parser fragility fixtures | `write_red_test` |
 | `negative_adversarial` | yes | Proves unsafe parser promotions are rejected | `fix_parser` |
 | `invariants` | yes | Enforces parser laws across outputs | `fix_parser` |
+| `ground_truth_eval` | yes | Compares parser output to committed truth expectations | `fix_parser` |
 | `regression_ratchet` | yes | Compares current signals to the accepted baseline | `update_baseline_with_reason` |
 | `dirty_benchmark_optional` | no | Runs the local dirty-corpus diagnostic when inputs exist | `inspect_dirty_corpus` |
 | `lint_type_secret` | yes | Runs parser lint, type checks and secret scan | `fix_parser` |
