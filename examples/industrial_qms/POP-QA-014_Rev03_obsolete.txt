@@ -1,0 +1,7 @@
+Codigo: POP-QA-014
+Revisao: 03
+Titulo: Controle de Nao Conformidades
+Area dona: Qualidade
+Status: Obsoleto
+
+Este documento foi substituido pela revisao 04.

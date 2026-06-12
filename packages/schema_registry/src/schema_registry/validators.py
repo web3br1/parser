@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 
 class _StrictModel(BaseModel):
@@ -81,6 +82,146 @@ class FAQItemModel(_StrictModel):
     category: str | None = None
 
 
+class ControlledDocumentMetadataModel(_StrictModel):
+    document_code: str
+    document_type: Literal["POP", "IT", "Manual", "Policy", "Form", "Record", "Specification"]
+    title: str
+    revision: str
+    status: Literal["vigent", "obsolete", "draft", "approved", "unknown"]
+    owner_area: str
+    issue_date: str | None = None
+    approval_date: str | None = None
+    review_due_date: str | None = None
+    process: str | None = None
+    plant: str | None = None
+    approvers: list[str] = []
+    confidentiality: Literal["public", "internal", "restricted"] | None = None
+    allowed_audience: list[str] = []
+
+    @field_validator("document_code", mode="before")
+    @classmethod
+    def _normalize_document_code(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        return "-".join(part for part in value.strip().upper().replace("_", "-").split() if part)
+
+    @field_validator("document_type", mode="before")
+    @classmethod
+    def _normalize_document_type(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip().lower()
+        aliases = {
+            "pop": "POP",
+            "it": "IT",
+            "manual": "Manual",
+            "man": "Manual",
+            "policy": "Policy",
+            "politica": "Policy",
+            "pol": "Policy",
+            "form": "Form",
+            "formulario": "Form",
+            "for": "Form",
+            "frm": "Form",
+            "record": "Record",
+            "registro": "Record",
+            "reg": "Record",
+            "specification": "Specification",
+            "spec": "Specification",
+            "esp": "Specification",
+        }
+        return aliases.get(normalized, value)
+
+    @field_validator("revision", mode="before")
+    @classmethod
+    def _normalize_revision(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        match = re.search(r"\d{1,3}", value)
+        if match:
+            return match.group(0).zfill(2)
+        return value.strip()
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _normalize_status(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        normalized = _fold_text(value)
+        aliases = {
+            "vigente": "vigent",
+            "vigent": "vigent",
+            "aprovado": "approved",
+            "approved": "approved",
+            "obsoleto": "obsolete",
+            "obsolete": "obsolete",
+            "rascunho": "draft",
+            "draft": "draft",
+            "unknown": "unknown",
+            "desconhecido": "unknown",
+        }
+        return aliases.get(normalized, value)
+
+    @field_validator("confidentiality", mode="before")
+    @classmethod
+    def _normalize_confidentiality(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        normalized = _fold_text(value)
+        aliases = {
+            "publico": "public",
+            "public": "public",
+            "interno": "internal",
+            "internal": "internal",
+            "restrito": "restricted",
+            "restricted": "restricted",
+        }
+        return aliases.get(normalized, value)
+
+
+class IndustrialRequirementModel(_StrictModel):
+    requirement_type: Literal[
+        "procedure",
+        "deadline",
+        "acceptance_criteria",
+        "mandatory_record",
+        "approval",
+        "training",
+        "other",
+    ]
+    subject: str
+    requirement: str
+    applies_to: str | None = None
+
+
+class IndustrialResponsibilityModel(_StrictModel):
+    role: str
+    responsibility: str
+    process: str | None = None
+    escalation: str | None = None
+
+
+class IndustrialRelationModel(_StrictModel):
+    from_id: str
+    from_type: Literal["Document", "Process", "Form", "Record", "Role"]
+    to_id: str
+    to_type: Literal["Document", "Process", "Form", "Record", "Role"]
+    relationship_type: Literal[
+        "defines_process",
+        "uses_form",
+        "requires_record",
+        "assigns_responsibility",
+        "requires_approval",
+        "references_document",
+        "supersedes",
+        "is_revision_of",
+        "triggers_action",
+        "requires_training",
+    ]
+    source_document_code: str | None = None
+    evidence_quote: str | None = None
+
+
 # ---------------------------------------------------------------------------
 # Registry and validator
 # ---------------------------------------------------------------------------
@@ -93,7 +234,30 @@ _FACT_TYPE_MAP: dict[str, type[_StrictModel]] = {
     "cancellation_policy": CancellationPolicyModel,
     "contact_info": ContactInfoModel,
     "faq_item": FAQItemModel,
+    "controlled_document_metadata": ControlledDocumentMetadataModel,
+    "industrial_requirement": IndustrialRequirementModel,
+    "industrial_responsibility": IndustrialResponsibilityModel,
+    "industrial_relation": IndustrialRelationModel,
 }
+
+
+def _fold_text(value: str) -> str:
+    return (
+        value.strip()
+        .lower()
+        .replace("ç", "c")
+        .replace("ã", "a")
+        .replace("á", "a")
+        .replace("à", "a")
+        .replace("â", "a")
+        .replace("é", "e")
+        .replace("ê", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ô", "o")
+        .replace("õ", "o")
+        .replace("ú", "u")
+    )
 
 
 @dataclass(frozen=True)

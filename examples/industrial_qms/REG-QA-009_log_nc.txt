@@ -1,0 +1,7 @@
+Codigo: REG-QA-009
+Revisao: 01
+Titulo: Log de Nao Conformidades
+Area dona: Qualidade
+Status: Vigente
+
+Registro obrigatorio para acompanhar numero, data, area e situacao de cada NC.

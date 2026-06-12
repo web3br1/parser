@@ -149,6 +149,56 @@ def test_contact_info_and_faq_route_to_facts(monkeypatch) -> None:
     ]
 
 
+def test_industrial_fact_types_route_to_extracted_facts(monkeypatch) -> None:
+    gateway = FakeGateway(
+        _response(
+            [
+                ClassificationItem("controlled_document_metadata", 0.92, "metadata"),
+                ClassificationItem("industrial_requirement", 0.9, "requirement"),
+                ClassificationItem("industrial_responsibility", 0.88, "responsibility"),
+                ClassificationItem("industrial_relation", 0.86, "relationship"),
+            ]
+        )
+    )
+    monkeypatch.setattr(classifier, "get_model_gateway", lambda provider: gateway)
+
+    result = classify_chunk("POP-QA-014 Rev. 04 usa FOR-QA-002")
+
+    assert [decision.destination for decision in result.decisions] == [
+        "extracted_facts",
+        "extracted_facts",
+        "extracted_facts",
+        "extracted_facts",
+    ]
+    assert all(decision.passes_threshold for decision in result.decisions)
+
+
+def test_industrial_tags_route_to_target_fact_types(monkeypatch) -> None:
+    gateway = FakeGateway(
+        _response(
+            [
+                ClassificationItem("deadline", 0.9, "prazo"),
+                ClassificationItem("responsibility", 0.88, "responsavel"),
+                ClassificationItem("related_form", 0.86, "formulario"),
+            ]
+        )
+    )
+    monkeypatch.setattr(classifier, "get_model_gateway", lambda provider: gateway)
+
+    result = classify_chunk("Investigar em 10 dias. Qualidade usa FOR-QA-002.")
+
+    assert [decision.fact_type for decision in result.decisions] == [
+        "industrial_requirement",
+        "industrial_responsibility",
+        "industrial_relation",
+    ]
+    assert [decision.destination for decision in result.decisions] == [
+        "extracted_facts",
+        "extracted_facts",
+        "extracted_facts",
+    ]
+
+
 def test_raw_response_hash_matches_response(monkeypatch) -> None:
     raw = '{"classifications":[{"classification":"service_price"}]}'
     response = ClassificationResponse(

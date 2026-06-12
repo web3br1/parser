@@ -164,3 +164,19 @@ Evidencia ainda pendente para aceite do MVP:
 - [ ] Hash do bundle compilado e verificavel pelo consumidor externo
 - [ ] Runtime externo importa o bundle compilado e responde com citacao respeitando bloqueios
 
+## Industrial Parser Domain Extension
+
+- [ ] Controlled-document metadata schema validates document code, type, title, revision, status and owner area
+- [ ] Deterministic metadata candidates extract document code and revision from filename/header text before LLM extraction
+- [ ] Missing controlled-document revision creates an industrial blocker
+- [ ] Same document family and same revision with different content hash creates an industrial blocker
+- [ ] Obsolete controlled documents do not publish active operational rules
+- [ ] Industrial classification supports controlled metadata, requirements, responsibilities and relations without generic catch-all schema
+- [ ] Industrial extraction prompts require literal evidence and return failed when evidence is absent
+- [ ] Industrial relations export through `context_bundle.v1` facts/rules, not a new top-level graph field
+- [ ] Relation records referencing missing nodes block readiness
+- [ ] Fixture pack `examples/industrial_qms` covers vigent, obsolete, work instruction, form, record, FAQ, table, missing revision, duplicate conflict, prompt injection and OCR-required scenarios
+- [ ] OCR-required industrial document is represented as a gap/blocker; OCR implementation remains out of this slice
+- [ ] Industrial gates pass: `uv run --cache-dir .uv-cache pytest packages\domain\tests packages\parsers\tests packages\schema_registry\tests workers\classification\tests workers\extraction\tests tests\api\test_context_bundle.py tests\smoke\test_industrial_qms_fixtures.py -q`
+- [ ] Context Bundle compatibility gates continue to pass after industrial records are added
+

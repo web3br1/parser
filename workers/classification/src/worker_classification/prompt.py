@@ -13,6 +13,13 @@ Classes disponiveis:
 - cancellation_policy: politica de cancelamento com prazo ou penalidade
 - contact_info: telefone, e-mail, endereco ou qualquer dado de contato
 - faq_item: pergunta e resposta frequente, instrucao de uso ou politica explicada em prosa
+- controlled_document_metadata: codigo, tipo, titulo, revisao, status, area dona ou outros metadados de documento controlado industrial
+- industrial_requirement: requisito, prazo, criterio de aceitacao, registro obrigatorio, aprovacao ou treinamento descrito explicitamente
+- industrial_responsibility: papel, area ou responsavel com responsabilidade explicita em processo industrial/QMS
+- industrial_relation: relacao explicita entre documento, processo, formulario, registro ou papel
+- procedure, requirement, definition, deadline, acceptance_criteria, mandatory_record, approval, training, audit, calibration: tags industriais roteadas para industrial_requirement
+- responsibility: tag industrial roteada para industrial_responsibility
+- related_form, references_document, process_step: tags industriais roteadas para industrial_relation
 - unknown: nao foi possivel classificar com confianca
 
 Trecho:

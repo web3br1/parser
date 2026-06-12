@@ -49,6 +49,13 @@ class _ChunkDraft:
     structure_risk_codes: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class _SectionText:
+    text: str
+    page_start: int
+    page_end: int
+
+
 def chunk_extraction(
     result: ExtractionResult,
     *,
@@ -160,7 +167,7 @@ def _chunk_industrial_pages(
         page_start = span["page_start"]
         page_end = span["page_end"]
         next_span = sorted_spans[span_index + 1] if span_index + 1 < len(sorted_spans) else None
-        text = _section_text(
+        section_text = _section_text(
             page_lines=page_lines,
             boilerplate_positions=boilerplate_positions,
             span=span,
@@ -168,26 +175,25 @@ def _chunk_industrial_pages(
             page_start=page_start,
             page_end=page_end,
         )
-        if not text:
+        if not section_text.text:
             continue
-        for block_order, block in enumerate(_split_text_block(text)):
-            drafts.append(
-                _ChunkDraft(
-                    text=block,
-                    source_page=page_start,
-                    sheet_name=None,
-                    row_start=None,
-                    row_end=None,
-                    section_heading=span["section_title"],
-                    order=(page_start - 1, span["line_index"], block_order),
-                    page_start=page_start,
-                    page_end=page_end,
-                    section_path=span["section_path"],
-                    section_title=span["section_title"],
-                    chunk_kind=span["kind"],
-                    structure_risk_codes=span["risk_codes"],
-                )
+        drafts.append(
+            _ChunkDraft(
+                text=section_text.text,
+                source_page=section_text.page_start,
+                sheet_name=None,
+                row_start=None,
+                row_end=None,
+                section_heading=span["section_title"],
+                order=(page_start - 1, span["line_index"], 0),
+                page_start=section_text.page_start,
+                page_end=section_text.page_end,
+                section_path=span["section_path"],
+                section_title=span["section_title"],
+                chunk_kind=span["kind"],
+                structure_risk_codes=span["risk_codes"],
             )
+        )
     return drafts
 
 
@@ -199,12 +205,17 @@ def _section_text(
     next_span: dict[str, Any] | None,
     page_start: int,
     page_end: int,
-) -> str:
+) -> _SectionText:
     start_line = int(span.get("line_index") or 0)
     next_page = int(next_span.get("page_start") or next_span.get("page_number") or 0) if next_span else None
     next_line = int(next_span.get("line_index") or 0) if next_span else None
+    effective_page_end = page_end
+    if next_page is not None and next_line is not None and next_page > page_end and next_line > 0:
+        effective_page_end = next_page
+
     selected: list[str] = []
-    for page_number in range(page_start, page_end + 1):
+    selected_pages: list[int] = []
+    for page_number in range(page_start, effective_page_end + 1):
         lines = page_lines.get(page_number, [])
         if not lines:
             continue
@@ -218,7 +229,15 @@ def _section_text(
             line = sanitize_text(lines[line_index])
             if line:
                 selected.append(line)
-    return sanitize_text("\n".join(selected))
+                selected_pages.append(page_number)
+    text = sanitize_text("\n".join(selected))
+    if not text or not selected_pages:
+        return _SectionText(text="", page_start=page_start, page_end=page_end)
+    return _SectionText(
+        text=text,
+        page_start=min(selected_pages),
+        page_end=max(selected_pages),
+    )
 
 
 def _context_list(value: Any) -> list[dict[str, Any]]:
