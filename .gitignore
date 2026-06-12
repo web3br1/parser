@@ -13,6 +13,7 @@ __pycache__/
 .uv-tools/
 .venv/
 .run/
+.worktrees/
 codex-smoke-basetemp/
 
 node_modules/
