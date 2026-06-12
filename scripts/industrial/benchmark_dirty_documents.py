@@ -88,10 +88,28 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def build_report(*, input_dir: Path, manifest_path: Path | None = None) -> dict[str, Any]:
+    return build_report_with_options(
+        input_dir=input_dir,
+        manifest_path=manifest_path,
+        include_candidate_details=False,
+    )
+
+
+def build_report_with_options(
+    *,
+    input_dir: Path,
+    manifest_path: Path | None = None,
+    include_candidate_details: bool = False,
+) -> dict[str, Any]:
     input_root = input_dir.resolve()
     expected_documents = _load_expected_documents(manifest_path)
     documents = [
-        benchmark_document(path=path, root=input_root, expected_documents=expected_documents)
+        benchmark_document(
+            path=path,
+            root=input_root,
+            expected_documents=expected_documents,
+            include_candidate_details=include_candidate_details,
+        )
         for path in _iter_input_documents(input_root)
     ]
     return {
@@ -108,6 +126,7 @@ def benchmark_document(
     path: Path,
     root: Path,
     expected_documents: dict[str, dict[str, str]],
+    include_candidate_details: bool = False,
 ) -> dict[str, Any]:
     relative_path = _relative_path(path, root)
     mime_type = _mime_type(path)
@@ -200,7 +219,7 @@ def benchmark_document(
         if processing["mode"] == "split_pages"
         else result.total_chars if result is not None else 0
     )
-    return {
+    document_report: dict[str, Any] = {
         "document_id": _document_id(relative_path),
         "relative_path": relative_path,
         "file_name": path.name,
@@ -238,6 +257,10 @@ def benchmark_document(
             expected_documents=expected_documents,
         ),
     }
+    if include_candidate_details:
+        document_report["semantic_candidates"] = semantic_candidates
+        document_report["table_figure_candidates"] = table_figure_candidates
+    return document_report
 
 
 def _iter_input_documents(input_root: Path) -> list[Path]:
