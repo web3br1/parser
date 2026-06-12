@@ -179,6 +179,7 @@ def benchmark_document(
 
     elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
     metadata_dict = asdict(metadata)
+    metadata_payload = _metadata_payload(metadata_dict)
     gap_codes = list(metadata.gap_codes)
     quality_profile = metadata_dict.get("quality_profile")
     section_metadata = section_diagnostics_to_metadata(section_diagnostics)
@@ -243,8 +244,8 @@ def benchmark_document(
         "elapsed_ms": elapsed_ms,
         "extracted_char_count": extracted_char_count,
         "quality": _quality_payload(quality, parser_error, text=text),
-        "metadata": metadata_dict,
-        "quality_profile": quality_profile if isinstance(quality_profile, dict) else {},
+        "metadata": metadata_payload,
+        "quality_profile": _quality_profile_payload(quality_profile),
         "gap_codes": sorted(gap_codes),
         "structure_hint_count": len(structure_hints),
         "section_diagnostics": section_metadata,
@@ -254,7 +255,7 @@ def benchmark_document(
         "review_packet_summary": review_packet_summary,
         "known_findings": _known_findings(
             file_name=path.name,
-            metadata=metadata_dict,
+            metadata=metadata_payload,
             parser_error=parser_error,
             processing=processing,
             expected_documents=expected_documents,
@@ -529,6 +530,31 @@ def _review_packet_summary(
         quality_profile=quality_profile,
     )
     return summarize_review_packets(packets)
+
+
+def _metadata_payload(metadata: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(metadata)
+    payload.pop("nested_identifiers", None)
+    payload.pop("quality_profile", None)
+    return payload
+
+
+def _quality_profile_payload(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    payload = dict(value)
+    nested = payload.get("nested_identifiers")
+    if isinstance(nested, list):
+        payload["nested_identifiers"] = [
+            {
+                key: item[key]
+                for key in ("identifier", "line_number", "identifier_type")
+                if isinstance(item, dict) and key in item
+            }
+            for item in nested
+            if isinstance(item, dict)
+        ]
+    return payload
 
 
 def _sum_nested_counts(documents: list[dict[str, Any]], path: list[str]) -> dict[str, int]:

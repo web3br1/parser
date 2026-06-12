@@ -214,3 +214,31 @@ def test_csv_register_rows_do_not_become_file_level_metadata() -> None:
     assert candidate.document_code is None
     assert "document_family_candidate" in candidate.gap_codes
     assert [item["identifier"] for item in candidate.nested_identifiers] == ["REG 001", "REG 002"]
+
+
+def test_collection_labeled_code_does_not_become_file_level_metadata() -> None:
+    candidate = extract_metadata_candidates(
+        filename="manual-consolidado.txt",
+        text="\n".join([
+            "Codigo: POP 101",
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "document_family_candidate" in candidate.gap_codes
+    assert "ambiguous_nested_document_codes" in candidate.gap_codes
+
+
+def test_collection_filename_code_does_not_become_file_level_metadata() -> None:
+    candidate = extract_metadata_candidates(
+        filename="POP-101-manual-consolidado.txt",
+        text="\n".join([
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "document_family_candidate" in candidate.gap_codes

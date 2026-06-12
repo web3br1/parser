@@ -289,6 +289,29 @@ def test_dirty_benchmark_omits_candidate_details_unless_requested(tmp_path: Path
     assert details_document["table_figure_candidates"]
 
 
+def test_dirty_benchmark_quality_profile_omits_source_quotes_by_default(tmp_path: Path) -> None:
+    benchmark = load_benchmark()
+    input_dir = tmp_path / "docs"
+    input_dir.mkdir()
+    source = input_dir / "document_family_collection.txt"
+    source.write_text(
+        "\n".join([
+            "Manual operacional consolidado",
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+        encoding="utf-8",
+    )
+
+    report = benchmark.build_report(input_dir=input_dir)
+
+    document = report["documents"][0]
+    assert "quality_profile" not in document["metadata"]
+    assert "nested_identifiers" not in document["metadata"]
+    assert document["quality_profile"]["nested_identifiers"][0]["identifier"] == "POP 101"
+    assert "quote" not in document["quality_profile"]["nested_identifiers"][0]
+
+
 def test_cli_invalid_manifest_does_not_print_absolute_path(tmp_path: Path) -> None:
     manifest = tmp_path / "bad-manifest.json"
     manifest.write_text("[]", encoding="utf-8")

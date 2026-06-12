@@ -52,6 +52,8 @@ INDUSTRIAL_GAP_BLOCKERS = {
     "obsolete_active_record": "industrial_obsolete_record_active",
 }
 PARSER_GAP_BLOCKERS = {
+    "document_family_candidate": "parser_document_family_requires_review",
+    "document_family_requires_review": "parser_document_family_requires_review",
     "parser_document_family_requires_review": "parser_document_family_requires_review",
 }
 SOURCE_PUBLIC_FIELDS = (

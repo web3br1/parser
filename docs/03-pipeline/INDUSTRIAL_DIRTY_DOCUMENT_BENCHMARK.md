@@ -404,8 +404,9 @@ Fields:
   internal document-like records.
 - `nested_identifier_count`: count of internal identifiers preserved as
   evidence.
-- `nested_identifiers`: identifier, line number, quote and identifier type for
-  representative nested candidates.
+- `nested_identifiers`: identifier, line number and identifier type for
+  representative nested candidates. Source quotes are not emitted in the
+  default benchmark report.
 - `unsafe_file_metadata_blocked`: the parser intentionally refused to promote a
   nested identifier to file-level metadata.
 - `review_required`: a human decision is required before publication.

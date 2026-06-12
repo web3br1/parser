@@ -94,14 +94,18 @@ class IndustrialMetadataCandidate:
 def extract_metadata_candidates(*, filename: str, text: str) -> IndustrialMetadataCandidate:
     haystack = f"{filename}\n{text[:4000]}"
     labeled = _labeled_values(text)
-    code = _first_document_code(filename=filename, text=text, labeled=labeled)
+    quality_profile = build_quality_profile(filename=filename, text=text)
+    quality_profile_metadata = quality_profile_to_metadata(quality_profile)
+    code = (
+        None
+        if quality_profile.document_family_candidate
+        else _first_document_code(filename=filename, text=text, labeled=labeled)
+    )
     revision = _first_revision(haystack, labeled)
     document_type = _document_type_from_code(code) or _document_type_from_text(haystack)
     status = _status(haystack, labeled)
     title = _first_labeled(labeled, TITLE_LABELS)
     owner_area = _first_labeled(labeled, OWNER_LABELS)
-    quality_profile = build_quality_profile(filename=filename, text=text)
-    quality_profile_metadata = quality_profile_to_metadata(quality_profile)
     gap_codes = _gap_codes(code=code, revision=revision, text=text)
     if quality_profile.document_family_candidate and "document_family_candidate" not in gap_codes:
         gap_codes.append("document_family_candidate")
