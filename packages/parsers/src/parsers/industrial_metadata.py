@@ -75,7 +75,7 @@ HEADER_LABELS = (
     + ("pagina", "pagina total", "data", "responsavel nome", "aprovacao nome")
 )
 DASH_TRANSLATIONS = ("\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2212")
-NESTED_DOCUMENT_CODE_TYPES = {"POP", "IT", "MAN", "MANUAL", "POL", "PTC"}
+NESTED_DOCUMENT_CODE_TYPES = {"POP", "IT", "MAN", "MANUAL", "POL", "PTC", "REG"}
 
 
 @dataclass(frozen=True)

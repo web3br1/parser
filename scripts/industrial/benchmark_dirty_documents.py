@@ -180,6 +180,7 @@ def benchmark_document(
     elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
     metadata_dict = asdict(metadata)
     gap_codes = list(metadata.gap_codes)
+    quality_profile = metadata_dict.get("quality_profile")
     section_metadata = section_diagnostics_to_metadata(section_diagnostics)
     chunk_diagnostics = _chunk_diagnostics(
         result=chunk_result,
@@ -210,6 +211,7 @@ def benchmark_document(
         document_id=_document_id(relative_path),
         metadata=metadata_dict,
         gap_codes=gap_codes,
+        quality_profile=quality_profile if isinstance(quality_profile, dict) else None,
         section_diagnostics=section_metadata,
         semantic_candidates=semantic_candidates,
         table_figure_candidates=table_figure_candidates,
@@ -242,6 +244,7 @@ def benchmark_document(
         "extracted_char_count": extracted_char_count,
         "quality": _quality_payload(quality, parser_error, text=text),
         "metadata": metadata_dict,
+        "quality_profile": quality_profile if isinstance(quality_profile, dict) else {},
         "gap_codes": sorted(gap_codes),
         "structure_hint_count": len(structure_hints),
         "section_diagnostics": section_metadata,
@@ -512,6 +515,7 @@ def _review_packet_summary(
     document_id: str,
     metadata: dict[str, Any],
     gap_codes: list[str],
+    quality_profile: dict[str, Any] | None,
     section_diagnostics: dict[str, Any],
     semantic_candidates: list[dict[str, Any]],
     table_figure_candidates: list[dict[str, Any]],
@@ -522,6 +526,7 @@ def _review_packet_summary(
         section_diagnostics=section_diagnostics,
         semantic_candidates=semantic_candidates,
         table_figure_candidates=table_figure_candidates,
+        quality_profile=quality_profile,
     )
     return summarize_review_packets(packets)
 

@@ -199,3 +199,18 @@ def test_collection_keeps_nested_identifiers_without_file_level_code() -> None:
     assert "document_family_candidate" in candidate.gap_codes
     assert [item["identifier"] for item in candidate.nested_identifiers] == ["POP 101", "POP 102"]
     assert candidate.quality_profile["document_family_candidate"] is True
+
+
+def test_csv_register_rows_do_not_become_file_level_metadata() -> None:
+    candidate = extract_metadata_candidates(
+        filename="csv_register_like_rows.csv",
+        text="\n".join([
+            "registro,descricao,status",
+            "REG 001,Registro de limpeza,ativo",
+            "REG 002,Registro de inspecao,ativo",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "document_family_candidate" in candidate.gap_codes
+    assert [item["identifier"] for item in candidate.nested_identifiers] == ["REG 001", "REG 002"]

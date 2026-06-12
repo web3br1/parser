@@ -41,3 +41,18 @@ def test_quality_profile_metadata_is_stable_and_serializable() -> None:
     assert metadata["nested_identifiers"][0]["identifier"] == "POP 101"
     assert metadata["nested_identifiers"][0]["line_number"] == 1
     assert metadata["nested_identifiers"][0]["quote"] == "POP 101 - Atendimento"
+
+
+def test_form_reference_does_not_turn_single_document_into_family() -> None:
+    profile = build_quality_profile(
+        filename="POP-QA-014_Rev04_vigent.txt",
+        text="\n".join([
+            "Codigo: POP-QA-014",
+            "Revisao: 04",
+            "O registro FOR-QA-002 deve ser preenchido.",
+        ]),
+    )
+
+    assert profile.document_family_candidate is False
+    assert profile.unsafe_file_metadata_blocked is False
+    assert profile.review_required is False

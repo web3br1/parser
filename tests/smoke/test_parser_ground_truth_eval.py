@@ -172,6 +172,63 @@ def test_ground_truth_metrics_fail_on_negative_expected_false_positive() -> None
     )
 
 
+def test_ground_truth_evaluates_quality_profile_and_nested_identifiers() -> None:
+    evaluator = load_eval()
+    manifest = {
+        "schema_version": "parser_ground_truth_manifest.v1",
+        "documents": [
+            {
+                "filename": "collection.txt",
+                "expected": [
+                    {
+                        "kind": "quality_profile",
+                        "type": "document_family_candidate",
+                        "canonical": "true",
+                    },
+                    {
+                        "kind": "nested_identifier",
+                        "type": "identifier",
+                        "canonical": "POP 101",
+                    },
+                    {
+                        "kind": "metadata",
+                        "type": "document_code",
+                        "canonical": "POP 101",
+                        "negative": True,
+                    },
+                    {
+                        "kind": "review_packet",
+                        "type": "reason_code",
+                        "canonical": "document_family_requires_review",
+                    },
+                ],
+            }
+        ],
+    }
+    benchmark = {
+        "schema_version": "industrial_dirty_benchmark.v1",
+        "documents": [
+            {
+                "file_name": "collection.txt",
+                "metadata": {"document_code": None},
+                "quality_profile": {
+                    "document_family_candidate": True,
+                    "nested_identifiers": [{"identifier": "POP 101"}],
+                },
+                "review_packet_summary": {
+                    "reason_code_counts": {"document_family_requires_review": 1},
+                },
+            }
+        ],
+    }
+
+    report = evaluator.compute_ground_truth_report(manifest=manifest, benchmark_report=benchmark)
+
+    assert report["status"] == "pass"
+    assert report["matched_count"] == 3
+    assert report["critical_false_positives"] == 0
+
+
 def test_manifest_fixture_evaluates_with_cli_and_writes_deterministic_report(
     tmp_path: Path,
 ) -> None:
@@ -197,7 +254,7 @@ def test_manifest_fixture_evaluates_with_cli_and_writes_deterministic_report(
     assert stdout_payload == file_payload
     assert file_payload["schema_version"] == "parser_ground_truth_eval.v1"
     assert file_payload["status"] == "pass"
-    assert file_payload["manifest"]["document_count"] == 2
+    assert file_payload["manifest"]["document_count"] == 5
     assert str(tmp_path) not in output.read_text(encoding="utf-8")
     assert "generated_at" not in output.read_text(encoding="utf-8")
 

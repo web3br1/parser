@@ -11,6 +11,7 @@ NESTED_IDENTIFIER_RE = re.compile(
     r"(?:[ .-][A-Z]{1,8}){0,3}[ .-]\d{1,4}\b",
     re.IGNORECASE,
 )
+FAMILY_IDENTIFIER_TYPES = {"POP", "IT", "MAN", "MANUAL", "POL", "PTC", "REG"}
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,12 @@ class ParserQualityProfile:
 def build_quality_profile(*, filename: str, text: str) -> ParserQualityProfile:
     identifiers = _nested_identifiers(text)
     distinct_identifiers = {candidate.identifier for candidate in identifiers}
-    document_family_candidate = len(distinct_identifiers) >= 2
+    family_identifiers = {
+        candidate.identifier
+        for candidate in identifiers
+        if candidate.identifier_type in FAMILY_IDENTIFIER_TYPES
+    }
+    document_family_candidate = len(family_identifiers) >= 2
     risk_codes: list[str] = []
     if document_family_candidate:
         risk_codes.extend(["document_family_candidate", "unsafe_file_metadata_blocked"])
