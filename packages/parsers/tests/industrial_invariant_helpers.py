@@ -12,6 +12,7 @@ from parsers.base import ExtractionResult, sanitize_text
 KNOWN_PARSER_RISK_CODES = {
     "ambiguous_nested_document_codes",
     "ambiguous_section_heading",
+    "document_family_candidate",
     "empty_page",
     "high_layout_complexity",
     "low_confidence_semantic_unit",
@@ -23,12 +24,14 @@ KNOWN_PARSER_RISK_CODES = {
     "section_hierarchy_gap",
     "sparse_text_with_images",
     "table_candidates_present",
+    "unsafe_file_metadata_blocked",
     "visual_content_without_caption",
 }
 
 KNOWN_REVIEW_REASON_CODES = {
     "ambiguous_metadata",
     "ambiguous_section_hierarchy",
+    "document_family_requires_review",
     "low_confidence_semantic_unit",
     "missing_metadata",
     "revision_family_conflict",

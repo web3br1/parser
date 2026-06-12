@@ -1,6 +1,6 @@
 # TASK-040 - Parser-Wide Quality Closure
 
-Status: planned
+Status: implemented
 
 ## Goal
 
@@ -87,12 +87,81 @@ uv run --cache-dir .uv-cache python scripts\ci\secret_scan.py
 
 ## Execution Checklist
 
-- [ ] Add parser-wide quality profile tests.
-- [ ] Implement parser-wide quality profile.
-- [ ] Extend industrial metadata/review integration.
-- [ ] Extend ground truth fixtures and evaluator.
-- [ ] Add context bundle readiness coverage.
-- [ ] Update docs.
-- [ ] Run verification target.
-- [ ] Record execution evidence.
+- [x] Add parser-wide quality profile tests.
+- [x] Implement parser-wide quality profile.
+- [x] Extend industrial metadata/review integration.
+- [x] Extend ground truth fixtures and evaluator.
+- [x] Add context bundle readiness coverage.
+- [x] Update docs.
+- [x] Run verification target.
+- [x] Record execution evidence.
 
+## Execution Evidence
+
+Implemented on 2026-06-12 on branch `codex/parser-quality-closure`.
+
+Focused parser tests:
+
+```powershell
+uv run --cache-dir .uv-cache pytest packages\parsers\tests\test_quality_profile.py packages\parsers\tests\test_industrial_metadata.py packages\parsers\tests\test_industrial_review.py -q
+```
+
+Observed: `23 passed`.
+
+Ground truth and publication/readiness tests:
+
+```powershell
+uv run --cache-dir .uv-cache pytest tests\smoke\test_parser_ground_truth_eval.py tests\api\test_context_bundle.py -q
+```
+
+Observed: `56 passed`.
+
+Parser ground truth CLI:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\quality\parser_ground_truth_eval.py
+```
+
+Observed:
+
+- status: `pass`;
+- precision: `0.85`;
+- recall: `1.0`;
+- missing count: `0`;
+- critical false positives: `0`.
+
+Parser quality gate:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\quality\parser_quality_gate.py --report .run\parser-quality-closure-final.json
+```
+
+Observed:
+
+- status: `pass`;
+- required failed layers: none;
+- dirty benchmark optional layer: `skip` because `.run\industrial-real` is not
+  present in the isolated worktree.
+
+Additional API checks for the context bundle readiness change:
+
+```powershell
+uv run --cache-dir .uv-cache ruff check apps\api\src\context_builder\services\context_bundle_service.py tests\api\test_context_bundle.py
+uv run --cache-dir .uv-cache mypy --ignore-missing-imports -p context_builder
+```
+
+Observed:
+
+- ruff: `All checks passed!`;
+- mypy: `Success: no issues found in 50 source files`.
+
+Ratchet baseline update:
+
+```powershell
+uv run --cache-dir .uv-cache python scripts\quality\parser_regression_ratchet.py --dirty-corpus-dir .run/industrial-real --update-baseline --reason "TASK-040 accepts parser-wide document-family quality risk emission"
+```
+
+Reason: TASK-040 intentionally adds the parser-wide
+`document_family_candidate` / `unsafe_file_metadata_blocked` risk emission.
+The accepted `signals.adversarial_risk_emissions` baseline moved from `74` to
+`75`.

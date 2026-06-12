@@ -1,6 +1,6 @@
 {
-  "accepted_at": "2026-06-06T00:00:00Z",
-  "accepted_reason": "TASK-036 accepted parser fragility ratchet baseline after review-policy fixes",
+  "accepted_at": "2026-06-12T19:04:56Z",
+  "accepted_reason": "TASK-040 accepts parser-wide document-family quality risk emission",
   "dirty_corpus_optional": {
     "reason": "optional dirty corpus not committed",
     "status": "skipped"
@@ -8,7 +8,7 @@
   "fixture_pack_id": "parser_fragility.v1",
   "schema_version": "parser_fragility_ratchet.v1",
   "signals": {
-    "adversarial_risk_emissions": 74,
+    "adversarial_risk_emissions": 75,
     "benchmark_schema_version": "industrial_dirty_benchmark.v1",
     "invariant_pass_counts": {
       "candidate_evidence_pages": 8,
