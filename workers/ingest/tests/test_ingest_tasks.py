@@ -237,6 +237,33 @@ def test_success_return_contains_counts(monkeypatch: Any, tmp_path: Path) -> Non
     assert "warnings" in result
 
 
+def test_chunk_payload_persists_full_page_span() -> None:
+    chunk = RawChunk(
+        chunk_index=0,
+        text="secao inteira",
+        char_count=len("secao inteira"),
+        token_estimate=4,
+        chunk_hash="hash",
+        source_page=2,
+        sheet_name=None,
+        row_start=None,
+        row_end=None,
+        section_heading="Procedimento",
+        metadata={"parser": "pdf"},
+        page_start=2,
+        page_end=5,
+        section_path="1",
+        section_title="Procedimento",
+        chunk_kind="numbered_heading",
+    )
+
+    payload = db._chunk_payload(chunk)
+
+    assert payload["page_start"] == 2
+    assert payload["page_end"] == 5
+    assert payload["metadata"]["section_path"] == "1"
+
+
 class _Parser:
     def extract(self, path: Path) -> ExtractionResult:
         return ExtractionResult(

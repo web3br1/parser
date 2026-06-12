@@ -1,0 +1,83 @@
+{
+  "fixture_pack_id": "industrial-qms-minimal-v1",
+  "language": "pt-BR",
+  "documents": [
+    {
+      "filename": "POP-QA-014_Rev04_vigent.txt",
+      "scenario": "vigent_pop_revision",
+      "document_code": "POP-QA-014",
+      "revision": "04",
+      "expected_status": "vigent"
+    },
+    {
+      "filename": "POP-QA-014_Rev03_obsolete.txt",
+      "scenario": "obsolete_pop_revision",
+      "document_code": "POP-QA-014",
+      "revision": "03",
+      "expected_status": "obsolete"
+    },
+    {
+      "filename": "IT-PRD-002_Rev07_setup_linha.txt",
+      "scenario": "work_instruction",
+      "document_code": "IT-PRD-002",
+      "revision": "07",
+      "expected_status": "vigent"
+    },
+    {
+      "filename": "FOR-QA-002_Rev02_registro_nc.txt",
+      "scenario": "form",
+      "document_code": "FOR-QA-002",
+      "revision": "02",
+      "expected_status": "vigent"
+    },
+    {
+      "filename": "REG-QA-009_log_nc.txt",
+      "scenario": "record_log",
+      "document_code": "REG-QA-009",
+      "revision": "01",
+      "expected_status": "vigent"
+    },
+    {
+      "filename": "FAQ-QA-001_duvidas_nc.txt",
+      "scenario": "faq",
+      "document_code": "FAQ-QA-001",
+      "revision": "01",
+      "expected_status": "vigent"
+    },
+    {
+      "filename": "QA_training_matrix.csv",
+      "scenario": "table",
+      "document_code": "REG-QA-010",
+      "revision": "01",
+      "expected_status": "vigent"
+    },
+    {
+      "filename": "POP-QA-099_missing_revision.txt",
+      "scenario": "missing_revision",
+      "document_code": "POP-QA-099",
+      "expected_gap": "missing_revision"
+    },
+    {
+      "filename": "POP-QA-014_Rev04_duplicate_conflict.txt",
+      "scenario": "duplicate_revision_conflict",
+      "document_code": "POP-QA-014",
+      "revision": "04",
+      "expected_gap": "duplicate_revision_conflict"
+    },
+    {
+      "filename": "IT-SEC-001_prompt_injection.txt",
+      "scenario": "prompt_injection",
+      "document_code": "IT-SEC-001",
+      "revision": "01",
+      "expected_gap": "injection_suspected"
+    },
+    {
+      "filename": "POP-QA-200_scanned_placeholder.pdf",
+      "scenario": "ocr_required",
+      "document_code": "POP-QA-200",
+      "revision": "01",
+      "ocr_required": true,
+      "expected_gap": "ocr_required"
+    }
+  ]
+}

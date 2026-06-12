@@ -31,6 +31,26 @@ SCHEMA_VERSION: Literal["context_bundle.v1"] = "context_bundle.v1"
 CANONICALIZATION = "json.sort_keys.compact.v1"
 LOW_CONFIDENCE_THRESHOLD = 0.75
 BUNDLE_QUOTE_ROLE = "viewer"
+INDUSTRIAL_FACT_TYPES = {
+    "controlled_document_metadata",
+    "industrial_requirement",
+    "industrial_responsibility",
+    "industrial_relation",
+}
+INDUSTRIAL_RULE_TYPES = {
+    "industrial_requirement",
+    "industrial_responsibility",
+    "industrial_relation",
+}
+INDUSTRIAL_GAP_BLOCKERS = {
+    "duplicate_revision_conflict": "industrial_duplicate_revision_conflict",
+    "ambiguous_vigent_revision": "industrial_ambiguous_vigent_revision",
+    "missing_revision": "industrial_metadata_missing_revision",
+    "missing_document_code": "industrial_metadata_missing_document_code",
+    "ocr_required": "industrial_ocr_required",
+    "quality_gate_failed": "industrial_quality_gate_failed",
+    "obsolete_active_record": "industrial_obsolete_record_active",
+}
 SOURCE_PUBLIC_FIELDS = (
     "id",
     "title",
@@ -202,6 +222,7 @@ def build_context_bundle_from_rows(
         facts=sorted_facts,
         rules=sorted_rules,
         evidence=sorted_evidence,
+        gaps=[gap.model_dump(mode="json") for gap in safe_gaps],
         open_unknown_count=open_unknown_count,
         blocking_contradiction_count=blocking_contradiction_count,
     )
@@ -311,6 +332,7 @@ def _readiness(
     facts: list[dict[str, Any]],
     rules: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
+    gaps: list[dict[str, Any]],
     open_unknown_count: int,
     blocking_contradiction_count: int,
 ) -> ContextBundleReadiness:
@@ -337,9 +359,13 @@ def _readiness(
             evidence_id in evidence_ids for evidence_id in record_evidence_ids
         ):
             warnings.append("published_record_missing_evidence")
+            if _is_industrial_row(row):
+                blocking.append("industrial_record_missing_evidence")
         confidence = row.get("confidence")
         if isinstance(confidence, int | float | Decimal) and confidence < LOW_CONFIDENCE_THRESHOLD:
             warnings.append("low_confidence_record")
+
+    blocking.extend(_industrial_blockers(facts=facts, rules=rules, gaps=gaps))
 
     blocking = sorted(set(blocking))
     warnings = sorted(set(warnings))
@@ -352,6 +378,104 @@ def _readiness(
         blocking_reasons=blocking,
         warnings=warnings,
     )
+
+
+def _industrial_blockers(
+    *,
+    facts: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    gaps: list[dict[str, Any]],
+) -> list[str]:
+    blockers: list[str] = []
+    industrial_rows = [
+        row
+        for row in [*facts, *rules]
+        if row.get("fact_type") in INDUSTRIAL_FACT_TYPES
+        or row.get("rule_type") in INDUSTRIAL_RULE_TYPES
+    ]
+    if not industrial_rows:
+        return blockers
+
+    known_node_ids = _industrial_node_ids([*facts, *rules])
+    for row in industrial_rows:
+        payload = _industrial_payload(row)
+        if _is_controlled_document_metadata(row) and not payload.get("document_code"):
+            blockers.append("industrial_metadata_missing_document_code")
+        if _is_controlled_document_metadata(row) and not payload.get("revision"):
+            blockers.append("industrial_metadata_missing_revision")
+        if not _is_controlled_document_metadata(row) and _contains_status(payload, "obsolete"):
+            blockers.append("industrial_obsolete_record_active")
+        if _is_industrial_relation(row) and _relation_missing_node(payload, known_node_ids):
+            blockers.append("industrial_relation_missing_node")
+    blockers.extend(_industrial_gap_blockers(gaps))
+    return blockers
+
+
+def _industrial_gap_blockers(gaps: list[dict[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    for gap in gaps:
+        status = gap.get("status")
+        if status not in {None, "open", "needs_review", "blocked"}:
+            continue
+        kind = gap.get("kind") or gap.get("id")
+        if isinstance(kind, str) and kind in INDUSTRIAL_GAP_BLOCKERS:
+            blockers.append(INDUSTRIAL_GAP_BLOCKERS[kind])
+    return blockers
+
+
+def _industrial_node_ids(facts: list[dict[str, Any]]) -> set[str]:
+    ids: set[str] = set()
+    for row in facts:
+        if _is_industrial_relation(row):
+            continue
+        payload = _industrial_payload(row)
+        for key in ("document_code", "role", "process", "subject"):
+            node_id = payload.get(key)
+            if isinstance(node_id, str) and node_id:
+                ids.add(node_id)
+    return ids
+
+
+def _industrial_payload(row: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key in ("normalized_content", "condition", "action"):
+        value = row.get(key)
+        if isinstance(value, dict):
+            payload.update(value)
+    return payload
+
+
+def _is_controlled_document_metadata(row: dict[str, Any]) -> bool:
+    return row.get("fact_type") == "controlled_document_metadata"
+
+
+def _is_industrial_row(row: dict[str, Any]) -> bool:
+    return (
+        row.get("fact_type") in INDUSTRIAL_FACT_TYPES
+        or row.get("rule_type") in INDUSTRIAL_RULE_TYPES
+    )
+
+
+def _is_industrial_relation(row: dict[str, Any]) -> bool:
+    return row.get("fact_type") == "industrial_relation" or row.get("rule_type") == "industrial_relation"
+
+
+def _relation_missing_node(payload: dict[str, Any], known_node_ids: set[str]) -> bool:
+    from_id = payload.get("from_id")
+    to_id = payload.get("to_id")
+    return (
+        isinstance(from_id, str)
+        and isinstance(to_id, str)
+        and (from_id not in known_node_ids or to_id not in known_node_ids)
+    )
+
+
+def _contains_status(value: Any, status: str) -> bool:
+    if isinstance(value, dict):
+        return any(_contains_status(item, status) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_status(item, status) for item in value)
+    return isinstance(value, str) and value.lower() == status
 
 
 def _with_evidence_ids(

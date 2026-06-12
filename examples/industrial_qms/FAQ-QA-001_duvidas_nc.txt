@@ -1,0 +1,8 @@
+Codigo: FAQ-QA-001
+Revisao: 01
+Titulo: Duvidas Frequentes de Nao Conformidade
+Area dona: Qualidade
+Status: Vigente
+
+Pergunta: Como abrir uma nao conformidade?
+Resposta: Registrar a ocorrencia no FOR-QA-002 e comunicar a Qualidade.

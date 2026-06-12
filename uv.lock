@@ -379,6 +379,12 @@ requires-dist = [
 name = "context-builder-domain"
 version = "0.1.0"
 source = { editable = "packages/domain" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.7" }]
 
 [[package]]
 name = "context-builder-model-gateway"
