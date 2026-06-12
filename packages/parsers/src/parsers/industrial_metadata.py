@@ -3,6 +3,9 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, field
+from typing import Any
+
+from parsers.quality_profile import build_quality_profile, quality_profile_to_metadata
 
 DOCUMENT_CODE_RE = re.compile(
     r"\b(?P<type>POP|IT|MAN|MANUAL|POL|FOR|FRM|REG|ESP|SPEC|FAQ)"
@@ -84,6 +87,8 @@ class IndustrialMetadataCandidate:
     status: str | None = None
     owner_area: str | None = None
     gap_codes: list[str] = field(default_factory=list)
+    nested_identifiers: list[dict[str, object]] = field(default_factory=list)
+    quality_profile: dict[str, Any] = field(default_factory=dict)
 
 
 def extract_metadata_candidates(*, filename: str, text: str) -> IndustrialMetadataCandidate:
@@ -95,7 +100,11 @@ def extract_metadata_candidates(*, filename: str, text: str) -> IndustrialMetada
     status = _status(haystack, labeled)
     title = _first_labeled(labeled, TITLE_LABELS)
     owner_area = _first_labeled(labeled, OWNER_LABELS)
+    quality_profile = build_quality_profile(filename=filename, text=text)
+    quality_profile_metadata = quality_profile_to_metadata(quality_profile)
     gap_codes = _gap_codes(code=code, revision=revision, text=text)
+    if quality_profile.document_family_candidate and "document_family_candidate" not in gap_codes:
+        gap_codes.append("document_family_candidate")
     return IndustrialMetadataCandidate(
         document_code=code,
         document_type=document_type,
@@ -104,6 +113,8 @@ def extract_metadata_candidates(*, filename: str, text: str) -> IndustrialMetada
         status=status,
         owner_area=owner_area,
         gap_codes=gap_codes,
+        nested_identifiers=list(quality_profile_metadata["nested_identifiers"]),
+        quality_profile=quality_profile_metadata,
     )
 
 

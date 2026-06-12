@@ -182,3 +182,20 @@ def test_prefers_header_code_over_referenced_form_code() -> None:
     )
 
     assert result.document_code == "FAQ-QA-001"
+
+
+def test_collection_keeps_nested_identifiers_without_file_level_code() -> None:
+    candidate = extract_metadata_candidates(
+        filename="manual-consolidado.txt",
+        text="\n".join([
+            "Manual operacional consolidado",
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "ambiguous_nested_document_codes" in candidate.gap_codes
+    assert "document_family_candidate" in candidate.gap_codes
+    assert [item["identifier"] for item in candidate.nested_identifiers] == ["POP 101", "POP 102"]
+    assert candidate.quality_profile["document_family_candidate"] is True

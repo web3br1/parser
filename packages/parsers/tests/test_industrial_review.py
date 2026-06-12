@@ -118,3 +118,30 @@ def test_summarizes_review_packets_by_reason() -> None:
         "missing_metadata": 1,
         "visual_table_figure_risk": 1,
     }
+
+
+def test_document_family_review_packet_groups_nested_identifier_evidence() -> None:
+    packets = build_review_packets(
+        document_id="manual-consolidado",
+        quality_profile={
+            "document_family_candidate": True,
+            "publication_blocking_risk": True,
+            "nested_identifiers": [
+                {"identifier": "POP 101", "line_number": 2, "quote": "POP 101 - Atendimento"},
+                {"identifier": "POP 102", "line_number": 3, "quote": "POP 102 - Encerramento"},
+            ],
+            "risk_codes": ["document_family_candidate", "unsafe_file_metadata_blocked"],
+        },
+    )
+
+    family_packets = [
+        packet for packet in packets if packet.reason_code == "document_family_requires_review"
+    ]
+    assert len(family_packets) == 1
+    assert family_packets[0].severity == "critical"
+    assert family_packets[0].suggested_decision == "classify_collection_before_publication"
+    assert family_packets[0].risk_codes == (
+        "document_family_candidate",
+        "unsafe_file_metadata_blocked",
+    )
+    assert [item["identifier"] for item in family_packets[0].evidence] == ["POP 101", "POP 102"]
