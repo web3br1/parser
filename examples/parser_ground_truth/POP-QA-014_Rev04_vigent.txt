@@ -1,0 +1,18 @@
+Codigo: POP-QA-014
+Revisao: 04
+Titulo: Controle de Nao Conformidades
+Area dona: Qualidade
+Status: Vigente
+
+1 Objetivo
+Este procedimento define como registrar nao conformidades.
+
+1.1 Procedimento
+Toda nao conformidade deve ser registrada.
+O Supervisor deve revisar o registro antes da liberacao.
+Formulario FOR-QA-002 Registro de Nao Conformidade.
+
+Campo | Responsavel | Status
+NC | Supervisor | Aberta
+
+Figura 1 - Fluxo de registro de NC.

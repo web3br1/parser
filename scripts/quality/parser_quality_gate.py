@@ -70,6 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     rendered = render_report_json(report)
     if args.report:
         report_path = _resolve_repo_path(repo_root, args.report)
+        assert report_path is not None
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(rendered, encoding="utf-8")
     print(rendered, end="")
@@ -160,6 +161,12 @@ def _layer_specs(*, repo_root: Path, dirty_corpus_dir: Path) -> list[LayerSpec]:
                     "-q",
                 ),
             ),
+            failure_next_action="fix_parser",
+        ),
+        LayerSpec(
+            name="ground_truth_eval",
+            required=True,
+            commands=(_uv("python", "scripts\\quality\\parser_ground_truth_eval.py"),),
             failure_next_action="fix_parser",
         ),
         LayerSpec(

@@ -64,6 +64,7 @@ def test_gate_report_has_ordered_layers_and_skips_missing_dirty_corpus(tmp_path:
         "fixtures",
         "negative_adversarial",
         "invariants",
+        "ground_truth_eval",
         "regression_ratchet",
         "dirty_benchmark_optional",
         "lint_type_secret",
@@ -129,6 +130,33 @@ def test_regression_ratchet_failure_points_to_baseline_review_action(tmp_path: P
     assert failed_layer["failure_summary"] == (
         "signals.metadata_expected_hits dropped below baseline"
     )
+
+
+def test_ground_truth_eval_failure_points_to_parser_fix_action(tmp_path: Path) -> None:
+    gate = load_gate()
+    runner = FakeRunner({
+        "parser_ground_truth_eval.py": (
+            1,
+            "missing expected parser truth item",
+        ),
+    })
+
+    report = gate.build_quality_gate_report(
+        repo_root=ROOT,
+        dirty_corpus_dir=tmp_path / "missing-dirty-corpus",
+        command_runner=runner,
+    )
+
+    failed_layer = next(
+        layer for layer in report["layers"] if layer["name"] == "ground_truth_eval"
+    )
+    assert report["status"] == "fail"
+    assert report["next_action"] == "fix_parser"
+    assert report["required_failed_layers"] == ["ground_truth_eval"]
+    assert failed_layer["required"] is True
+    assert failed_layer["result"] == "fail"
+    assert failed_layer["next_action"] == "fix_parser"
+    assert failed_layer["failure_summary"] == "missing expected parser truth item"
 
 
 def test_existing_dirty_corpus_runs_optional_benchmark_layer(tmp_path: Path) -> None:
