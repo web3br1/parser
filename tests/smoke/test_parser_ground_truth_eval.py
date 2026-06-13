@@ -172,6 +172,63 @@ def test_ground_truth_metrics_fail_on_negative_expected_false_positive() -> None
     )
 
 
+def test_ground_truth_evaluates_quality_profile_and_nested_identifiers() -> None:
+    evaluator = load_eval()
+    manifest = {
+        "schema_version": "parser_ground_truth_manifest.v1",
+        "documents": [
+            {
+                "filename": "collection.txt",
+                "expected": [
+                    {
+                        "kind": "quality_profile",
+                        "type": "document_family_candidate",
+                        "canonical": "true",
+                    },
+                    {
+                        "kind": "nested_identifier",
+                        "type": "identifier",
+                        "canonical": "POP 101",
+                    },
+                    {
+                        "kind": "metadata",
+                        "type": "document_code",
+                        "canonical": "POP 101",
+                        "negative": True,
+                    },
+                    {
+                        "kind": "review_packet",
+                        "type": "reason_code",
+                        "canonical": "document_family_requires_review",
+                    },
+                ],
+            }
+        ],
+    }
+    benchmark = {
+        "schema_version": "industrial_dirty_benchmark.v1",
+        "documents": [
+            {
+                "file_name": "collection.txt",
+                "metadata": {"document_code": None},
+                "quality_profile": {
+                    "document_family_candidate": True,
+                    "nested_identifiers": [{"identifier": "POP 101"}],
+                },
+                "review_packet_summary": {
+                    "reason_code_counts": {"document_family_requires_review": 1},
+                },
+            }
+        ],
+    }
+
+    report = evaluator.compute_ground_truth_report(manifest=manifest, benchmark_report=benchmark)
+
+    assert report["status"] == "pass"
+    assert report["matched_count"] == 3
+    assert report["critical_false_positives"] == 0
+
+
 def test_manifest_fixture_evaluates_with_cli_and_writes_deterministic_report(
     tmp_path: Path,
 ) -> None:
@@ -197,7 +254,7 @@ def test_manifest_fixture_evaluates_with_cli_and_writes_deterministic_report(
     assert stdout_payload == file_payload
     assert file_payload["schema_version"] == "parser_ground_truth_eval.v1"
     assert file_payload["status"] == "pass"
-    assert file_payload["manifest"]["document_count"] == 2
+    assert file_payload["manifest"]["document_count"] == 5
     assert str(tmp_path) not in output.read_text(encoding="utf-8")
     assert "generated_at" not in output.read_text(encoding="utf-8")
 
@@ -230,6 +287,29 @@ def test_dirty_benchmark_omits_candidate_details_unless_requested(tmp_path: Path
     assert "table_figure_candidates" not in default_document
     assert details_document["semantic_candidates"]
     assert details_document["table_figure_candidates"]
+
+
+def test_dirty_benchmark_quality_profile_omits_source_quotes_by_default(tmp_path: Path) -> None:
+    benchmark = load_benchmark()
+    input_dir = tmp_path / "docs"
+    input_dir.mkdir()
+    source = input_dir / "document_family_collection.txt"
+    source.write_text(
+        "\n".join([
+            "Manual operacional consolidado",
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+        encoding="utf-8",
+    )
+
+    report = benchmark.build_report(input_dir=input_dir)
+
+    document = report["documents"][0]
+    assert "quality_profile" not in document["metadata"]
+    assert "nested_identifiers" not in document["metadata"]
+    assert document["quality_profile"]["nested_identifiers"][0]["identifier"] == "POP 101"
+    assert "quote" not in document["quality_profile"]["nested_identifiers"][0]
 
 
 def test_cli_invalid_manifest_does_not_print_absolute_path(tmp_path: Path) -> None:

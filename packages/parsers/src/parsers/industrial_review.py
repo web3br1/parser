@@ -25,10 +25,12 @@ def build_review_packets(
     semantic_candidates: list[dict[str, Any]] | None = None,
     table_figure_candidates: list[dict[str, Any]] | None = None,
     revision_conflicts: list[dict[str, Any]] | None = None,
+    quality_profile: dict[str, Any] | None = None,
 ) -> list[IndustrialReviewPacket]:
     packets: list[IndustrialReviewPacket] = []
     packets.extend(_metadata_packets(document_id, metadata or {}))
     packets.extend(_revision_conflict_packets(document_id, revision_conflicts or []))
+    packets.extend(_quality_profile_packets(document_id, quality_profile or {}))
     packets.extend(_section_packets(document_id, section_diagnostics or {}))
     packets.extend(_semantic_packets(document_id, semantic_candidates or []))
     packets.extend(_table_figure_packets(document_id, table_figure_candidates or []))
@@ -103,6 +105,30 @@ def _revision_conflict_packets(
             )
         )
     return packets
+
+
+def _quality_profile_packets(
+    document_id: str,
+    profile: dict[str, Any],
+) -> list[IndustrialReviewPacket]:
+    if profile.get("document_family_candidate") is not True:
+        return []
+    risk_codes = tuple(sorted({str(code) for code in profile.get("risk_codes", [])}))
+    evidence = [
+        item for item in profile.get("nested_identifiers", []) if isinstance(item, dict)
+    ][:10]
+    if not evidence:
+        evidence = [{"risk_code": "document_family_candidate"}]
+    return [
+        IndustrialReviewPacket(
+            packet_id=f"{document_id}:document_family_requires_review",
+            reason_code="document_family_requires_review",
+            severity="critical",
+            evidence=evidence,
+            suggested_decision="classify_collection_before_publication",
+            risk_codes=risk_codes or ("document_family_candidate",),
+        )
+    ]
 
 
 def _section_packets(

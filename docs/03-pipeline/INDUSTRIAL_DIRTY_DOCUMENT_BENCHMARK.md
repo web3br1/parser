@@ -391,6 +391,40 @@ Review packets preserve existing readiness behavior and `context_bundle.v1`
 compatibility. Future UI work can consume packet metadata without promoting
 uncertain findings to published truth.
 
+## Parser-Wide Quality Profile Diagnostics
+
+After TASK-040, each benchmark document also records a `quality_profile` object.
+This is a parser-wide calibration layer, not an industrial-only extraction
+feature. It tells downstream gates when parser output should remain diagnostic
+or review-required instead of becoming file-level truth.
+
+Fields:
+
+- `document_family_candidate`: the artifact appears to contain multiple
+  internal document-like records.
+- `nested_identifier_count`: count of internal identifiers preserved as
+  evidence.
+- `nested_identifiers`: identifier, line number and identifier type for
+  representative nested candidates. Source quotes are not emitted in the
+  default benchmark report.
+- `unsafe_file_metadata_blocked`: the parser intentionally refused to promote a
+  nested identifier to file-level metadata.
+- `review_required`: a human decision is required before publication.
+- `publication_blocking_risk`: unresolved publication should be represented as
+  a blocking gap/readiness reason.
+- `risk_codes`: stable quality risk codes.
+
+The profile is emitted unconditionally in benchmark document rows. Candidate
+details for semantic and table/figure outputs still require the explicit
+candidate-detail option used by the ground truth evaluator.
+
+For PMPR-like collections, internal POP codes remain evidence-backed nested
+identifiers. They must not become the document-level `document_code` unless a
+separate review/publication decision establishes the correct collection
+identity. `context_bundle.v1` is unchanged; unresolved collection publication is
+blocked through existing gap/readiness mechanisms such as
+`parser_document_family_requires_review`.
+
 ## Interpretation
 
 The current parser can extract substantial text from real technical PDFs with

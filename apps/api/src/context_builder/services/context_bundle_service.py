@@ -51,6 +51,11 @@ INDUSTRIAL_GAP_BLOCKERS = {
     "quality_gate_failed": "industrial_quality_gate_failed",
     "obsolete_active_record": "industrial_obsolete_record_active",
 }
+PARSER_GAP_BLOCKERS = {
+    "document_family_candidate": "parser_document_family_requires_review",
+    "document_family_requires_review": "parser_document_family_requires_review",
+    "parser_document_family_requires_review": "parser_document_family_requires_review",
+}
 SOURCE_PUBLIC_FIELDS = (
     "id",
     "title",
@@ -365,6 +370,7 @@ def _readiness(
         if isinstance(confidence, int | float | Decimal) and confidence < LOW_CONFIDENCE_THRESHOLD:
             warnings.append("low_confidence_record")
 
+    blocking.extend(_parser_gap_blockers(gaps))
     blocking.extend(_industrial_blockers(facts=facts, rules=rules, gaps=gaps))
 
     blocking = sorted(set(blocking))
@@ -420,6 +426,18 @@ def _industrial_gap_blockers(gaps: list[dict[str, Any]]) -> list[str]:
         kind = gap.get("kind") or gap.get("id")
         if isinstance(kind, str) and kind in INDUSTRIAL_GAP_BLOCKERS:
             blockers.append(INDUSTRIAL_GAP_BLOCKERS[kind])
+    return blockers
+
+
+def _parser_gap_blockers(gaps: list[dict[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    for gap in gaps:
+        status = gap.get("status")
+        if status not in {None, "open", "needs_review", "blocked"}:
+            continue
+        kind = gap.get("kind") or gap.get("id")
+        if isinstance(kind, str) and kind in PARSER_GAP_BLOCKERS:
+            blockers.append(PARSER_GAP_BLOCKERS[kind])
     return blockers
 
 

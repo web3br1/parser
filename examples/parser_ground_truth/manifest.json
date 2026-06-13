@@ -90,6 +90,76 @@
         }
       ],
       "filename": "toc_noise.txt"
+    },
+    {
+      "expected": [
+        {
+          "canonical": "true",
+          "kind": "quality_profile",
+          "type": "document_family_candidate"
+        },
+        {
+          "canonical": "true",
+          "kind": "quality_profile",
+          "type": "unsafe_file_metadata_blocked"
+        },
+        {
+          "canonical": "POP 101",
+          "kind": "nested_identifier",
+          "type": "identifier"
+        },
+        {
+          "canonical": "POP 102",
+          "kind": "nested_identifier",
+          "type": "identifier"
+        },
+        {
+          "canonical": "POP 101",
+          "kind": "metadata",
+          "negative": true,
+          "type": "document_code"
+        },
+        {
+          "canonical": "document_family_requires_review",
+          "kind": "review_packet",
+          "type": "reason_code"
+        }
+      ],
+      "filename": "document_family_collection.txt"
+    },
+    {
+      "expected": [
+        {
+          "canonical": "POP 101",
+          "kind": "metadata",
+          "negative": true,
+          "type": "document_code"
+        },
+        {
+          "canonical": "POP 102",
+          "kind": "metadata",
+          "negative": true,
+          "type": "document_code"
+        }
+      ],
+      "filename": "toc_nested_identifier_noise.txt"
+    },
+    {
+      "expected": [
+        {
+          "canonical": "REG 001",
+          "kind": "metadata",
+          "negative": true,
+          "type": "document_code"
+        },
+        {
+          "canonical": "REG 002",
+          "kind": "metadata",
+          "negative": true,
+          "type": "document_code"
+        }
+      ],
+      "filename": "csv_register_like_rows.csv"
     }
   ],
   "schema_version": "parser_ground_truth_manifest.v1"

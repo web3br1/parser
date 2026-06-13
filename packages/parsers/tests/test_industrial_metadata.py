@@ -182,3 +182,63 @@ def test_prefers_header_code_over_referenced_form_code() -> None:
     )
 
     assert result.document_code == "FAQ-QA-001"
+
+
+def test_collection_keeps_nested_identifiers_without_file_level_code() -> None:
+    candidate = extract_metadata_candidates(
+        filename="manual-consolidado.txt",
+        text="\n".join([
+            "Manual operacional consolidado",
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "ambiguous_nested_document_codes" in candidate.gap_codes
+    assert "document_family_candidate" in candidate.gap_codes
+    assert [item["identifier"] for item in candidate.nested_identifiers] == ["POP 101", "POP 102"]
+    assert candidate.quality_profile["document_family_candidate"] is True
+
+
+def test_csv_register_rows_do_not_become_file_level_metadata() -> None:
+    candidate = extract_metadata_candidates(
+        filename="csv_register_like_rows.csv",
+        text="\n".join([
+            "registro,descricao,status",
+            "REG 001,Registro de limpeza,ativo",
+            "REG 002,Registro de inspecao,ativo",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "document_family_candidate" in candidate.gap_codes
+    assert [item["identifier"] for item in candidate.nested_identifiers] == ["REG 001", "REG 002"]
+
+
+def test_collection_labeled_code_does_not_become_file_level_metadata() -> None:
+    candidate = extract_metadata_candidates(
+        filename="manual-consolidado.txt",
+        text="\n".join([
+            "Codigo: POP 101",
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "document_family_candidate" in candidate.gap_codes
+    assert "ambiguous_nested_document_codes" in candidate.gap_codes
+
+
+def test_collection_filename_code_does_not_become_file_level_metadata() -> None:
+    candidate = extract_metadata_candidates(
+        filename="POP-101-manual-consolidado.txt",
+        text="\n".join([
+            "POP 101 - Atendimento inicial",
+            "POP 102 - Encerramento",
+        ]),
+    )
+
+    assert candidate.document_code is None
+    assert "document_family_candidate" in candidate.gap_codes

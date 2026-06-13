@@ -225,6 +225,10 @@ def prediction_items(benchmark_report: Mapping[str, Any]) -> list[dict[str, Any]
             items.extend(_section_prediction_items(filename, section_diagnostics))
         items.extend(_semantic_prediction_items(filename, document.get("semantic_candidates")))
         items.extend(_table_figure_prediction_items(filename, document.get("table_figure_candidates")))
+        quality_profile = document.get("quality_profile")
+        if isinstance(quality_profile, Mapping):
+            items.extend(_quality_profile_prediction_items(filename, quality_profile))
+            items.extend(_nested_identifier_prediction_items(filename, quality_profile))
         review_summary = document.get("review_packet_summary")
         if isinstance(review_summary, Mapping):
             items.extend(_review_packet_prediction_items(filename, review_summary))
@@ -247,6 +251,47 @@ def _metadata_prediction_items(filename: str, metadata: Mapping[str, Any]) -> li
                 canonical=value,
             ))
     return items
+
+
+def _quality_profile_prediction_items(
+    filename: str,
+    profile: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for field in (
+        "document_family_candidate",
+        "unsafe_file_metadata_blocked",
+        "review_required",
+        "publication_blocking_risk",
+    ):
+        value = profile.get(field)
+        if isinstance(value, bool):
+            items.append(_truth_item(
+                filename=filename,
+                kind="quality_profile",
+                item_type=field,
+                canonical="true" if value else "false",
+            ))
+    return items
+
+
+def _nested_identifier_prediction_items(
+    filename: str,
+    profile: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    nested = profile.get("nested_identifiers", [])
+    if not isinstance(nested, list):
+        return []
+    return [
+        _truth_item(
+            filename=filename,
+            kind="nested_identifier",
+            item_type="identifier",
+            canonical=str(item["identifier"]),
+        )
+        for item in nested
+        if isinstance(item, Mapping) and isinstance(item.get("identifier"), str)
+    ]
 
 
 def _section_prediction_items(filename: str, diagnostics: Mapping[str, Any]) -> list[dict[str, Any]]:
