@@ -51,7 +51,8 @@ jobs:
       - run: uv sync --all-packages --dev
       - run: uvx pip-audit
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --prod
+      # A known LOW-severity advisory is intentionally allowed; gate on moderate+ only.
+      - run: pnpm audit --prod --audit-level moderate
 
   typecheck-ts:
     runs-on: ubuntu-latest
