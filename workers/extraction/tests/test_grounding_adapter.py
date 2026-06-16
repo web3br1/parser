@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from grounding import GroundingResult
-
 from worker_extraction import grounding as grnd
 
 
