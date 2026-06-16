@@ -104,6 +104,43 @@ Regra especial: retorne um item por dia mencionado no trecho.
             ' "answer": "resposta literal do texto", "category": null}'
         ),
     ),
+    "controlled_document_metadata": _BASE_RULES + _RESPONSE_FORMAT.format(
+        fact_type="controlled_document_metadata",
+        schema_example=(
+            '{"document_code": "POP-QA-014", "document_type": "POP",'
+            ' "title": "Controle de Nao Conformidades", "revision": "04",'
+            ' "status": "vigent|obsolete|draft|approved|unknown",'
+            ' "owner_area": "Qualidade", "issue_date": null,'
+            ' "approval_date": null, "review_due_date": null,'
+            ' "process": null, "plant": null, "approvers": [],'
+            ' "confidentiality": null, "allowed_audience": []}'
+        ),
+    ),
+    "industrial_requirement": _BASE_RULES + _RESPONSE_FORMAT.format(
+        fact_type="industrial_requirement",
+        schema_example=(
+            '{"requirement_type": "procedure|deadline|acceptance_criteria|mandatory_record|approval|training|other",'
+            ' "subject": "string", "requirement": "texto literal do requisito",'
+            ' "applies_to": null}'
+        ),
+    ),
+    "industrial_responsibility": _BASE_RULES + _RESPONSE_FORMAT.format(
+        fact_type="industrial_responsibility",
+        schema_example=(
+            '{"role": "Gerente da Qualidade",'
+            ' "responsibility": "texto literal da responsabilidade",'
+            ' "process": null, "escalation": null}'
+        ),
+    ),
+    "industrial_relation": _BASE_RULES + _RESPONSE_FORMAT.format(
+        fact_type="industrial_relation",
+        schema_example=(
+            '{"from_id": "POP-QA-014", "from_type": "Document",'
+            ' "to_id": "FOR-QA-002", "to_type": "Form",'
+            ' "relationship_type": "defines_process|uses_form|requires_record|assigns_responsibility|requires_approval|references_document|supersedes|is_revision_of|triggers_action|requires_training",'
+            ' "source_document_code": null, "evidence_quote": null}'
+        ),
+    ),
 }
 
 

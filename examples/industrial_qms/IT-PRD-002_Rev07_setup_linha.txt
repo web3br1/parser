@@ -1,0 +1,8 @@
+Codigo: IT-PRD-002
+Revisao: 07
+Titulo: Setup de Linha
+Area dona: Producao
+Status: Vigente
+
+4.1 Preparacao
+O operador deve verificar a liberacao da Qualidade antes do inicio do lote.

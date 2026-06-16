@@ -24,10 +24,14 @@ Este diretorio esta organizado pela ordem em que a documentacao costuma ser usad
 | O fluxo tecnico completo | `03-pipeline/PIPELINE.md` |
 | Como exportar contexto para outro chatbot | `03-pipeline/CONTEXT_BUNDLE.md` |
 | Como compilar um source pack para Context Bundle | `operations/source-pack-compiler-runbook.md` |
+| Como evoluir para documentos industriais/QMS | `03-pipeline/INDUSTRIAL_DOCUMENTS.md` |
+| Como medir documentos industriais reais e sujos | `03-pipeline/INDUSTRIAL_DIRTY_DOCUMENT_BENCHMARK.md` |
+| Qual ADR rege a extensao industrial | `02-architecture/ADR-024-industrial-parser-domain-extension.md` |
 | Como consultar conhecimento internamente para diagnostico | `03-pipeline/QUERY.md` |
 | Como rodar runtime local | `operations/LOCAL_RUNTIME.md` |
 | Como rodar Docker local | `operations/DOCKER_LOCAL_RUNTIME.md` |
 | Como rodar smoke/readiness real | `operations/smoke-runbook.md` |
+| Como operar a extensao industrial/QMS | `operations/industrial-parser-runbook.md` |
 | Como validar o console interno | `operations/frontend-console-runbook.md` |
 | Quais modelos Ollama foram medidos | `operations/model-benchmarks.md` |
 | Quais dados existem no banco | `04-data/DATA_MODEL.md` |

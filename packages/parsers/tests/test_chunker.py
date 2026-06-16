@@ -215,6 +215,111 @@ def test_short_industrial_sections_do_not_merge_across_section_paths() -> None:
     assert chunks[1].structure_risk_codes == ("section_hierarchy_gap",)
 
 
+def test_industrial_section_chunk_keeps_content_before_next_heading_on_later_page() -> None:
+    result = ExtractionResult(
+        mime_type="application/pdf",
+        pages=[
+            ExtractedPage(
+                page_number=1,
+                text="1 Procedimento\nAbrir registro inicial.",
+                char_count=36,
+                is_empty=False,
+            ),
+            ExtractedPage(
+                page_number=2,
+                text="Continuar investigacao com evidencias.",
+                char_count=37,
+                is_empty=False,
+            ),
+            ExtractedPage(
+                page_number=3,
+                text="Encerrar a secao com aprovacao.\n2 Registros\nGuardar formularios.",
+                char_count=65,
+                is_empty=False,
+            ),
+        ],
+        total_chars=138,
+        metadata={"parser": "pdf"},
+    )
+
+    chunks = chunk_extraction(
+        result,
+        industrial_context={
+            "section_spans": [
+                {
+                    "kind": "numbered_heading",
+                    "page_number": 1,
+                    "line_index": 0,
+                    "section_title": "Procedimento",
+                    "section_path": "1",
+                    "page_start": 1,
+                    "page_end": 2,
+                    "risk_codes": [],
+                },
+                {
+                    "kind": "numbered_heading",
+                    "page_number": 3,
+                    "line_index": 1,
+                    "section_title": "Registros",
+                    "section_path": "2",
+                    "page_start": 3,
+                    "page_end": 3,
+                    "risk_codes": [],
+                },
+            ]
+        },
+    )
+
+    assert len(chunks) == 2
+    assert chunks[0].section_path == "1"
+    assert chunks[0].page_start == 1
+    assert chunks[0].page_end == 3
+    assert "Continuar investigacao com evidencias." in chunks[0].text
+    assert "Encerrar a secao com aprovacao." in chunks[0].text
+    assert "2 Registros" not in chunks[0].text
+    assert "Guardar formularios." in chunks[1].text
+
+
+def test_industrial_section_chunk_is_not_split_by_token_window() -> None:
+    long_body = " ".join(f"etapa {index} deve ser verificada." for index in range(500))
+    result = ExtractionResult(
+        mime_type="application/pdf",
+        pages=[
+            ExtractedPage(
+                page_number=1,
+                text=f"1 Procedimento\n{long_body}",
+                char_count=len(long_body) + 15,
+                is_empty=False,
+            )
+        ],
+        total_chars=len(long_body) + 15,
+        metadata={"parser": "pdf"},
+    )
+
+    chunks = chunk_extraction(
+        result,
+        industrial_context={
+            "section_spans": [
+                {
+                    "kind": "numbered_heading",
+                    "page_number": 1,
+                    "line_index": 0,
+                    "section_title": "Procedimento",
+                    "section_path": "1",
+                    "page_start": 1,
+                    "page_end": 1,
+                    "risk_codes": [],
+                }
+            ]
+        },
+    )
+
+    assert len(chunks) == 1
+    assert chunks[0].section_path == "1"
+    assert chunks[0].token_estimate > 800
+    assert "etapa 499 deve ser verificada." in chunks[0].text
+
+
 def test_chunker_uses_section_diagnostics_metadata_by_default() -> None:
     result = ExtractionResult(
         mime_type="application/pdf",

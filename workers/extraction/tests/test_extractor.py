@@ -149,3 +149,57 @@ def test_extract_contact_info_with_quote(mock_gw: MagicMock) -> None:
     output = extract("tel: (11) 99999-9999", "contact_info")
     assert output.status == "ok"
     assert output.evidence_quote == "tel: (11) 99999-9999"
+
+
+@patch("worker_extraction.extractor.get_model_gateway")
+def test_extract_controlled_document_metadata(mock_gw: MagicMock) -> None:
+    payload = json.dumps({
+        "status": "ok",
+        "fact_type": "controlled_document_metadata",
+        "data": {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "revision": "04",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+        "evidence_span": {"quote": "POP-QA-014 Rev. 04", "char_start": None, "char_end": None},
+        "ambiguities": [],
+    })
+    mock_gw.return_value.extract.return_value = _mock_response(payload)
+
+    output = extract("POP-QA-014 Rev. 04", "controlled_document_metadata")
+
+    assert output.status == "ok"
+    assert output.normalized_content["revision"] == "04"
+
+
+@patch("worker_extraction.extractor.get_model_gateway")
+def test_extract_industrial_relation(mock_gw: MagicMock) -> None:
+    payload = json.dumps({
+        "status": "ok",
+        "fact_type": "industrial_relation",
+        "data": {
+            "from_id": "POP-QA-014",
+            "from_type": "Document",
+            "to_id": "FOR-QA-002",
+            "to_type": "Form",
+            "relationship_type": "uses_form",
+            "source_document_code": "POP-QA-014",
+            "evidence_quote": "Registrar a NC no formulario FOR-QA-002.",
+        },
+        "evidence_span": {
+            "quote": "Registrar a NC no formulario FOR-QA-002.",
+            "char_start": None,
+            "char_end": None,
+        },
+        "ambiguities": [],
+    })
+    mock_gw.return_value.extract.return_value = _mock_response(payload)
+
+    output = extract("Registrar a NC no formulario FOR-QA-002.", "industrial_relation")
+
+    assert output.status == "ok"
+    assert output.normalized_content["relationship_type"] == "uses_form"
+    assert output.normalized_content["source_document_code"] == "POP-QA-014"

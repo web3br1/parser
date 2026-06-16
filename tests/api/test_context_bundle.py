@@ -712,6 +712,342 @@ def test_context_bundle_low_confidence_warns() -> None:
     assert "low_confidence_record" in bundle.readiness.warnings
 
 
+def test_context_bundle_industrial_missing_revision_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    industrial_fact = {
+        **_fact(),
+        "fact_type": "controlled_document_metadata",
+        "normalized_content": {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[industrial_fact],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_metadata_missing_revision" in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_missing_document_code_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    industrial_fact = {
+        **_fact(),
+        "fact_type": "controlled_document_metadata",
+        "normalized_content": {
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "revision": "04",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[industrial_fact],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_metadata_missing_document_code" in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_missing_evidence_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    industrial_fact = {
+        **_fact(evidence_span_id=None),
+        "fact_type": "controlled_document_metadata",
+        "normalized_content": {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "revision": "04",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[industrial_fact],
+        rules=[],
+        evidence=[],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_record_missing_evidence" in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_obsolete_active_rule_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    obsolete_rule = {
+        **_rule(),
+        "rule_type": "industrial_requirement",
+        "condition": {"document_code": "POP-QA-014", "status": "obsolete"},
+        "action": {"requirement": "Use FOR-QA-001."},
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[],
+        rules=[obsolete_rule],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_obsolete_record_active" in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_obsolete_metadata_is_allowed_as_history() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    obsolete_metadata = {
+        **_fact(),
+        "fact_type": "controlled_document_metadata",
+        "normalized_content": {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "revision": "03",
+            "status": "obsolete",
+            "owner_area": "Qualidade",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[obsolete_metadata],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert "industrial_obsolete_record_active" not in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_relation_missing_node_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    relation_fact = {
+        **_fact(),
+        "fact_type": "industrial_relation",
+        "normalized_content": {
+            "from_id": "POP-QA-014",
+            "from_type": "Document",
+            "to_id": "FOR-QA-002",
+            "to_type": "Form",
+            "relationship_type": "uses_form",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[relation_fact],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_relation_missing_node" in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_relation_accepts_known_role_node() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    responsibility = {
+        **_fact(),
+        "fact_id": "5f7c6e4d-0000-4000-9000-000000000021",
+        "fact_type": "industrial_responsibility",
+        "normalized_content": {
+            "role": "Gerente da Qualidade",
+            "responsibility": "Aprovar CAPA critica.",
+            "process": "CAPA",
+        },
+    }
+    relation = {
+        **_fact(fact_id="5f7c6e4d-0000-4000-9000-000000000022"),
+        "fact_type": "industrial_relation",
+        "normalized_content": {
+            "from_id": "POP-QA-014",
+            "from_type": "Document",
+            "to_id": "Gerente da Qualidade",
+            "to_type": "Role",
+            "relationship_type": "requires_approval",
+        },
+    }
+    metadata = {
+        **_fact(fact_id="5f7c6e4d-0000-4000-9000-000000000023"),
+        "fact_type": "controlled_document_metadata",
+        "normalized_content": {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "revision": "04",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[metadata, responsibility, relation],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert "industrial_relation_missing_node" not in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_relation_accepts_known_rule_node() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    requirement_rule = {
+        **_rule(),
+        "rule_type": "industrial_requirement",
+        "condition": {"document_code": "POP-QA-014"},
+        "action": {
+            "requirement_type": "procedure",
+            "subject": "CAPA",
+            "requirement": "Executar analise de causa antes do fechamento.",
+        },
+    }
+    relation = {
+        **_fact(),
+        "fact_type": "industrial_relation",
+        "normalized_content": {
+            "from_id": "POP-QA-014",
+            "from_type": "Document",
+            "to_id": "CAPA",
+            "to_type": "Process",
+            "relationship_type": "defines_process",
+        },
+    }
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[relation],
+        rules=[requirement_rule],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+    )
+
+    assert "industrial_relation_missing_node" not in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_gap_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[
+            {
+                **_fact(),
+                "fact_type": "controlled_document_metadata",
+                "normalized_content": {
+                    "document_code": "POP-QA-014",
+                    "document_type": "POP",
+                    "title": "Controle de Nao Conformidades",
+                    "revision": "04",
+                    "status": "vigent",
+                    "owner_area": "Qualidade",
+                },
+            }
+        ],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+        gaps=[
+            {
+                "id": "gap-duplicate-revision",
+                "kind": "duplicate_revision_conflict",
+                "description": "Same document revision has two hashes.",
+                "severity": "high",
+                "status": "open",
+            }
+        ],
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_duplicate_revision_conflict" in bundle.readiness.blocking_reasons
+
+
+def test_context_bundle_industrial_ambiguous_vigent_revision_gap_blocks_readiness() -> None:
+    from context_builder.services.context_bundle_service import build_context_bundle_from_rows
+
+    bundle = build_context_bundle_from_rows(
+        workspace_id=WORKSPACE_ID,
+        sources=[_source()],
+        facts=[
+            {
+                **_fact(),
+                "fact_type": "controlled_document_metadata",
+                "normalized_content": {
+                    "document_code": "POP-QA-014",
+                    "document_type": "POP",
+                    "title": "Controle de Nao Conformidades",
+                    "revision": "04",
+                    "status": "vigent",
+                    "owner_area": "Qualidade",
+                },
+            }
+        ],
+        rules=[],
+        evidence=[_evidence()],
+        open_unknown_count=0,
+        blocking_contradiction_count=0,
+        gaps=[
+            {
+                "id": "gap-ambiguous-vigent",
+                "kind": "ambiguous_vigent_revision",
+                "description": "More than one active revision exists without obsolete marker.",
+                "severity": "high",
+                "status": "open",
+            }
+        ],
+    )
+
+    assert bundle.readiness.status == "blocked"
+    assert "industrial_ambiguous_vigent_revision" in bundle.readiness.blocking_reasons
+
+
 def test_context_bundle_service_loads_published_rows_and_audits_export() -> None:
     from context_builder.services.context_bundle_service import build_context_bundle
 

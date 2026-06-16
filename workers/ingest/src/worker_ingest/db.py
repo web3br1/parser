@@ -231,12 +231,29 @@ def _chunk_payload(chunk: RawChunk) -> dict[str, Any]:
         "chunk_index": chunk.chunk_index,
         "content": chunk.text,
         "content_hash": chunk.chunk_hash,
-        "page_start": chunk.source_page,
-        "page_end": chunk.source_page,
+        "page_start": chunk.page_start or chunk.source_page,
+        "page_end": chunk.page_end or chunk.source_page,
         "sheet_name": chunk.sheet_name,
         "row_start": chunk.row_start,
         "row_end": chunk.row_end,
         "section_title": chunk.section_heading,
         "token_count": chunk.token_estimate,
-        "metadata": chunk.metadata,
+        "metadata": _chunk_metadata_payload(chunk),
     }
+
+
+def _chunk_metadata_payload(chunk: RawChunk) -> dict[str, Any]:
+    metadata = dict(chunk.metadata)
+    if chunk.page_start is not None:
+        metadata["page_start"] = chunk.page_start
+    if chunk.page_end is not None:
+        metadata["page_end"] = chunk.page_end
+    if chunk.section_path is not None:
+        metadata["section_path"] = chunk.section_path
+    if chunk.section_title is not None:
+        metadata["section_title"] = chunk.section_title
+    if chunk.chunk_kind is not None:
+        metadata["chunk_kind"] = chunk.chunk_kind
+    if chunk.structure_risk_codes:
+        metadata["structure_risk_codes"] = list(chunk.structure_risk_codes)
+    return metadata
