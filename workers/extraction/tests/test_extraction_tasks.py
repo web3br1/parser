@@ -83,6 +83,114 @@ def _base_kwargs() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Grounding integration (Task 8) — flag-gated, warn-only
+# ---------------------------------------------------------------------------
+
+
+def _grounding_result(*, required: bool, status: str, reason: str) -> MagicMock:
+    result = MagicMock()
+    result.grounding_required = required
+    result.grounding_status = status
+    result.grounding_reason = reason
+    return result
+
+
+@patch("worker_extraction.tasks.db")
+@patch("worker_extraction.tasks.build_evidence_span_input")
+@patch("worker_extraction.tasks.extract")
+@patch("worker_extraction.tasks.grnd")
+def test_grounding_disabled_passes_no_payload(
+    mock_grnd: MagicMock,
+    mock_extract: MagicMock,
+    mock_build_span: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    mock_grnd.grounding_enabled.return_value = False
+    mock_db.get_job_by_idempotency_key.return_value = None
+    mock_db.claim_job.return_value = True
+    mock_db.get_chunk.return_value = _make_chunk()
+    mock_build_span.return_value = MagicMock(quote="some quote")
+    mock_db.complete_extraction_job.return_value = {"records_created": 1}
+    mock_db.finalize_source_state.return_value = "extracted"
+    mock_extract.return_value = _make_output()
+
+    result = extract_fact.run.__func__(DummyTask(), **_base_kwargs())
+
+    assert result["status"] == "succeeded"
+    mock_grnd.evaluate_for_extraction.assert_not_called()
+    assert mock_db.complete_extraction_job.call_args.kwargs["grounding_result"] is None
+
+
+@patch("worker_extraction.tasks.db")
+@patch("worker_extraction.tasks.build_evidence_span_input")
+@patch("worker_extraction.tasks.extract")
+@patch("worker_extraction.tasks.grnd")
+def test_grounding_required_failure_routes_to_review(
+    mock_grnd: MagicMock,
+    mock_extract: MagicMock,
+    mock_build_span: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    mock_grnd.grounding_enabled.return_value = True
+    mock_grnd.evaluate_for_extraction.return_value = _grounding_result(
+        required=True, status="failed", reason="grounding_evidence_not_literal"
+    )
+    mock_grnd.blocks_record.return_value = True
+    mock_grnd.to_payload.return_value = {"grounding_status": "failed"}
+    mock_db.get_job_by_idempotency_key.return_value = None
+    mock_db.claim_job.return_value = True
+    mock_db.get_chunk.return_value = _make_chunk()
+    mock_build_span.return_value = MagicMock(quote="some quote")
+    mock_db.complete_extraction_job.return_value = {"records_created": 0}
+    mock_db.finalize_source_state.return_value = "needs_review"
+    mock_extract.return_value = _make_output()
+
+    result = extract_fact.run.__func__(DummyTask(), **_base_kwargs())
+
+    assert result["status"] == "succeeded"
+    assert result["chunk_status"] == "needs_review"
+    assert result["reason"] == "grounding_evidence_not_literal"
+    kwargs = mock_db.complete_extraction_job.call_args.kwargs
+    # Required-grounding failure must not create a reliable record.
+    assert kwargs["fact_records"] == []
+    assert kwargs["rule_record"] is None
+    assert kwargs["grounding_result"] == {"grounding_status": "failed"}
+
+
+@patch("worker_extraction.tasks.db")
+@patch("worker_extraction.tasks.build_evidence_span_input")
+@patch("worker_extraction.tasks.extract")
+@patch("worker_extraction.tasks.grnd")
+def test_grounding_warn_only_persists_fact_and_result(
+    mock_grnd: MagicMock,
+    mock_extract: MagicMock,
+    mock_build_span: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    mock_grnd.grounding_enabled.return_value = True
+    mock_grnd.evaluate_for_extraction.return_value = _grounding_result(
+        required=False, status="passed", reason="grounding_warn_only"
+    )
+    mock_grnd.blocks_record.return_value = False
+    mock_grnd.to_payload.return_value = {"grounding_status": "passed"}
+    mock_db.get_job_by_idempotency_key.return_value = None
+    mock_db.claim_job.return_value = True
+    mock_db.get_chunk.return_value = _make_chunk()
+    mock_build_span.return_value = MagicMock(quote="some quote")
+    mock_db.complete_extraction_job.return_value = {"records_created": 1}
+    mock_db.finalize_source_state.return_value = "extracted"
+    mock_extract.return_value = _make_output()
+
+    result = extract_fact.run.__func__(DummyTask(), **_base_kwargs())
+
+    assert result["records_created"] == 1
+    kwargs = mock_db.complete_extraction_job.call_args.kwargs
+    # Warn-only keeps the fact AND records the grounding result.
+    assert len(kwargs["fact_records"]) == 1
+    assert kwargs["grounding_result"] == {"grounding_status": "passed"}
+
+
+# ---------------------------------------------------------------------------
 # Idempotency
 # ---------------------------------------------------------------------------
 

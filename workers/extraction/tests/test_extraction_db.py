@@ -48,7 +48,10 @@ class _Client:
     def rpc(self, name: str, payload: dict) -> _Query:
         self.query.rpc_name = name
         self.query.rpc_payload = payload
-        self.query.data = self.source_status
+        if name == "complete_extraction_job":
+            self.query.data = {"records_created": 0, "chunk_status": "extracted"}
+        else:
+            self.query.data = self.source_status
         return self.query
 
 
@@ -119,6 +122,63 @@ def test_log_token_usage_uses_database_cost_column(monkeypatch):
     assert "estimated_cost_usd" not in client.query.payload
     assert client.query.payload["job_id"] == "job-1"
     assert client.query.payload["prompt_version"] == "prompt-v1"
+
+
+def test_complete_extraction_job_omits_grounding_by_default(monkeypatch):
+    client = _Client()
+    monkeypatch.setattr(db, "_client", lambda: client)
+
+    db.complete_extraction_job(
+        job_id="job-1",
+        chunk_id="chunk-1",
+        workspace_id="workspace-1",
+        source_id="source-1",
+        chunk_status="extracted",
+        idempotency_key="idem-1",
+        unknown_item=None,
+        evidence_span=None,
+        fact_records=[],
+        rule_record=None,
+    )
+
+    assert client.query.rpc_name == "complete_extraction_job"
+    assert client.query.rpc_payload is not None
+    assert client.query.rpc_payload["grounding_result"] is None
+
+
+def test_complete_extraction_job_passes_grounding_result_through(monkeypatch):
+    client = _Client()
+    monkeypatch.setattr(db, "_client", lambda: client)
+
+    grounding_result = {
+        "grounding_status": "passed",
+        "grounding_required": True,
+        "deterministic_status": "passed",
+        "match_mode": "normalized",
+        "grounding_key": "abc123",
+        "config_version": "default@1",
+    }
+
+    db.complete_extraction_job(
+        job_id="job-1",
+        chunk_id="chunk-1",
+        workspace_id="workspace-1",
+        source_id="source-1",
+        chunk_status="extracted",
+        idempotency_key="idem-1",
+        unknown_item=None,
+        evidence_span=None,
+        fact_records=[],
+        rule_record=None,
+        grounding_result=grounding_result,
+    )
+
+    assert client.query.rpc_name == "complete_extraction_job"
+    assert client.query.rpc_payload is not None
+    assert client.query.rpc_payload["grounding_result"] == grounding_result
+    # Existing args remain intact and unchanged.
+    assert client.query.rpc_payload["target_job_id"] == "job-1"
+    assert client.query.rpc_payload["fact_records"] == []
 
 
 @pytest.mark.parametrize("source_status", ["extracted", "published", "failed"])

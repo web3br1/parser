@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "context-builder-api",
     "context-builder-domain",
+    "context-builder-grounding",
     "context-builder-model-gateway",
     "context-builder-monorepo",
     "context-builder-normalizers",
@@ -385,6 +386,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2.7" }]
+
+[[package]]
+name = "context-builder-grounding"
+version = "0.1.0"
+source = { editable = "packages/grounding" }
+dependencies = [
+    { name = "context-builder-model-gateway" },
+    { name = "context-builder-normalizers" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "context-builder-model-gateway", editable = "packages/model_gateway" },
+    { name = "context-builder-normalizers", editable = "packages/normalizers" },
+]
 
 [[package]]
 name = "context-builder-model-gateway"
@@ -2229,6 +2245,7 @@ source = { editable = "workers/extraction" }
 dependencies = [
     { name = "celery", extra = ["redis"] },
     { name = "context-builder-domain" },
+    { name = "context-builder-grounding" },
     { name = "context-builder-model-gateway" },
     { name = "context-builder-normalizers" },
     { name = "context-builder-observability" },
@@ -2241,6 +2258,7 @@ dependencies = [
 requires-dist = [
     { name = "celery", extras = ["redis"], specifier = ">=5.3" },
     { name = "context-builder-domain", editable = "packages/domain" },
+    { name = "context-builder-grounding", editable = "packages/grounding" },
     { name = "context-builder-model-gateway", editable = "packages/model_gateway" },
     { name = "context-builder-normalizers", editable = "packages/normalizers" },
     { name = "context-builder-observability", editable = "packages/observability" },

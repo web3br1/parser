@@ -19,6 +19,7 @@ members = [
   "packages/security",
   "packages/observability",
   "packages/source_pack",
+  "packages/grounding",
 ]
 
 [dependency-groups]
@@ -40,6 +41,7 @@ ignore = ["B008", "E501"]
 [tool.uv.sources]
 context-builder-api = { workspace = true }
 context-builder-domain = { workspace = true }
+context-builder-grounding = { workspace = true }
 context-builder-model-gateway = { workspace = true }
 context-builder-normalizers = { workspace = true }
 context-builder-observability = { workspace = true }
@@ -71,6 +73,7 @@ mypy_path = [
   "packages/security/src",
   "packages/observability/src",
   "packages/source_pack/src",
+  "packages/grounding/src",
 ]
 exclude = []
 

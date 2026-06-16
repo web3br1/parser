@@ -8,9 +8,11 @@ from urllib.request import Request, urlopen
 from model_gateway.base import (
     ClassificationItem,
     ClassificationResponse,
+    EntailmentResponse,
     ExtractionResponse,
     ModelGatewayBase,
     ModelRunConfig,
+    render_entailment_prompt,
 )
 
 
@@ -21,6 +23,7 @@ class OllamaModelGateway(ModelGatewayBase):
         base_url: str | None = None,
         classification_model: str | None = None,
         extraction_model: str | None = None,
+        grounding_model: str | None = None,
         timeout_seconds: float | None = None,
     ) -> None:
         self._base_url = str(base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")).rstrip(
@@ -33,6 +36,10 @@ class OllamaModelGateway(ModelGatewayBase):
         self._extraction_model = str(extraction_model or os.getenv(
             "EXTRACTION_MODEL",
             "hf.co/hesamation/Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled-GGUF:Q4_K_M",
+        ))
+        self._grounding_model = str(grounding_model or os.getenv(
+            "GROUNDING_MODEL",
+            self._extraction_model,
         ))
         self._timeout_seconds = timeout_seconds or float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "300"))
 
@@ -99,6 +106,46 @@ class OllamaModelGateway(ModelGatewayBase):
         input_tokens = _token_count(response, "prompt_eval_count")
         output_tokens = _token_count(response, "eval_count")
         return ExtractionResponse(
+            model_name=run_config.model,
+            prompt_version=prompt_version,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            raw_response=raw,
+            provider=run_config.provider,
+            model=run_config.model,
+            latency_ms=latency_ms,
+            raw_response_hash=sha256(raw.encode()).hexdigest(),
+            estimated_cost_usd=0.0,
+        )
+
+    def verify_entailment(
+        self,
+        claim_payload: dict[str, Any],
+        fact_type: str,
+        chunk_text: str,
+        verified_quote: str,
+        location: dict[str, Any],
+        prompt_template: str,
+        prompt_version: str,
+        config: ModelRunConfig | None = None,
+    ) -> EntailmentResponse:
+        run_config = config or self._default_config(self._grounding_model)
+        _ensure_ollama(run_config)
+        prompt = render_entailment_prompt(
+            prompt_template,
+            claim_payload=claim_payload,
+            fact_type=fact_type,
+            chunk_text=chunk_text,
+            verified_quote=verified_quote,
+            location=location,
+        )
+        started = perf_counter()
+        response = self._generate(prompt=prompt, config=run_config)
+        latency_ms = _latency_ms(started)
+        raw = str(response.get("response") or "{}")
+        input_tokens = _token_count(response, "prompt_eval_count")
+        output_tokens = _token_count(response, "eval_count")
+        return EntailmentResponse(
             model_name=run_config.model,
             prompt_version=prompt_version,
             input_tokens=input_tokens,
