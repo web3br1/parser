@@ -1,0 +1,11 @@
+Codigo: POP-QA-014
+Revisao: 04
+Titulo: Controle de Nao Conformidades
+Area dona: Qualidade
+Status: Vigente
+
+5.2 Abertura de NC
+Toda nao conformidade deve ser registrada no formulario FOR-QA-002.
+
+5.3 Investigacao
+A investigacao deve ser concluida em ate 10 dias uteis.

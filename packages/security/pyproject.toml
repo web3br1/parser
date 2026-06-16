@@ -3,7 +3,13 @@ name = "context-builder-security"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-  "python-magic>=0.4",
+  # python-magic is a ctypes binding to native libmagic. On Windows libmagic is
+  # not reliably present and the DLL ctypes finds is often incompatible, which
+  # crashes the interpreter with an access violation (SIGSEGV) at import time —
+  # an uncatchable native fault. python-magic-bin bundles a working Windows DLL
+  # and exposes the same magic API, so it is used in its place on win32.
+  "python-magic>=0.4; sys_platform != 'win32'",
+  "python-magic-bin>=0.4; sys_platform == 'win32'",
 ]
 
 [build-system]

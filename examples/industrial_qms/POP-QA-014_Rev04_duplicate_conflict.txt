@@ -1,0 +1,7 @@
+Codigo: POP-QA-014
+Revisao: 04
+Titulo: Controle de Nao Conformidades - Conteudo Divergente
+Area dona: Qualidade
+Status: Vigente
+
+Este arquivo simula mesma revisao com conteudo divergente.

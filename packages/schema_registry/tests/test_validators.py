@@ -24,6 +24,10 @@ def test_get_pydantic_model_all_known() -> None:
         "cancellation_policy",
         "contact_info",
         "faq_item",
+        "controlled_document_metadata",
+        "industrial_requirement",
+        "industrial_responsibility",
+        "industrial_relation",
     ):
         model = get_pydantic_model(ft)
         assert model is not None
@@ -127,3 +131,125 @@ def test_validate_extraction_unknown_type_never_raises() -> None:
 def test_validate_extraction_garbage_input() -> None:
     result = validate_extraction("faq_item", {"question": 123, "answer": None})
     assert isinstance(result, ValidationResult)
+
+
+# ---------------------------------------------------------------------------
+# industrial/QMS types
+# ---------------------------------------------------------------------------
+
+
+def test_validate_controlled_document_metadata_valid() -> None:
+    result = validate_extraction(
+        "controlled_document_metadata",
+        {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "revision": "04",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+    )
+
+    assert result.valid is True
+    assert result.data["document_code"] == "POP-QA-014"
+
+
+def test_validate_controlled_document_metadata_requires_revision() -> None:
+    result = validate_extraction(
+        "controlled_document_metadata",
+        {
+            "document_code": "POP-QA-014",
+            "document_type": "POP",
+            "title": "Controle de Nao Conformidades",
+            "status": "vigent",
+            "owner_area": "Qualidade",
+        },
+    )
+
+    assert result.valid is False
+    assert any("revision" in error for error in result.errors)
+
+
+def test_validate_controlled_document_metadata_normalizes_natural_values() -> None:
+    result = validate_extraction(
+        "controlled_document_metadata",
+        {
+            "document_code": " pop qa 014 ",
+            "document_type": "pop",
+            "title": "Controle de Nao Conformidades",
+            "revision": "Rev. 04",
+            "status": "Vigente",
+            "owner_area": "Qualidade",
+        },
+    )
+
+    assert result.valid is True
+    assert result.data["document_code"] == "POP-QA-014"
+    assert result.data["document_type"] == "POP"
+    assert result.data["revision"] == "04"
+    assert result.data["status"] == "vigent"
+
+
+def test_validate_industrial_requirement_valid() -> None:
+    result = validate_extraction(
+        "industrial_requirement",
+        {
+            "requirement_type": "deadline",
+            "subject": "Investigacao de NC",
+            "requirement": "A investigacao deve ser concluida em 10 dias.",
+            "applies_to": "Nao conformidade",
+        },
+    )
+
+    assert result.valid is True
+    assert result.data["requirement_type"] == "deadline"
+
+
+def test_validate_industrial_responsibility_valid() -> None:
+    result = validate_extraction(
+        "industrial_responsibility",
+        {
+            "role": "Gerente da Qualidade",
+            "responsibility": "Aprovar CAPA critica.",
+            "process": "CAPA",
+        },
+    )
+
+    assert result.valid is True
+    assert result.data["role"] == "Gerente da Qualidade"
+
+
+def test_validate_industrial_relation_valid() -> None:
+    result = validate_extraction(
+        "industrial_relation",
+        {
+            "from_id": "POP-QA-014",
+            "from_type": "Document",
+            "to_id": "FOR-QA-002",
+            "to_type": "Form",
+            "relationship_type": "uses_form",
+        },
+    )
+
+    assert result.valid is True
+    assert result.data["relationship_type"] == "uses_form"
+
+
+def test_validate_industrial_relation_preserves_optional_provenance() -> None:
+    result = validate_extraction(
+        "industrial_relation",
+        {
+            "from_id": "POP-QA-014",
+            "from_type": "Document",
+            "to_id": "FOR-QA-002",
+            "to_type": "Form",
+            "relationship_type": "uses_form",
+            "source_document_code": "POP-QA-014",
+            "evidence_quote": "Registrar a NC no formulario FOR-QA-002.",
+        },
+    )
+
+    assert result.valid is True
+    assert result.data["source_document_code"] == "POP-QA-014"
+    assert result.data["evidence_quote"] == "Registrar a NC no formulario FOR-QA-002."

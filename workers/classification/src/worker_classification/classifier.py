@@ -16,12 +16,32 @@ FACT_TYPES: set[str] = {
     "payment_method",
     "contact_info",
     "faq_item",
+    "controlled_document_metadata",
+    "industrial_requirement",
+    "industrial_responsibility",
+    "industrial_relation",
 }
 RULE_TYPES: set[str] = {
     "discount_rule",
     "cancellation_policy",
 }
 ALLOWED_CLASSIFICATIONS: set[str] = FACT_TYPES | RULE_TYPES | {"unknown"}
+INDUSTRIAL_CLASSIFICATION_ALIASES: dict[str, str] = {
+    "procedure": "industrial_requirement",
+    "requirement": "industrial_requirement",
+    "definition": "industrial_requirement",
+    "deadline": "industrial_requirement",
+    "acceptance_criteria": "industrial_requirement",
+    "mandatory_record": "industrial_requirement",
+    "approval": "industrial_requirement",
+    "training": "industrial_requirement",
+    "audit": "industrial_requirement",
+    "calibration": "industrial_requirement",
+    "responsibility": "industrial_responsibility",
+    "related_form": "industrial_relation",
+    "references_document": "industrial_relation",
+    "process_step": "industrial_relation",
+}
 
 
 @dataclass
@@ -112,7 +132,8 @@ def _build_decisions(response: ClassificationResponse) -> list[ClassificationDec
 
     decisions: list[ClassificationDecision] = []
     for item in response.classifications:
-        if item.classification not in ALLOWED_CLASSIFICATIONS:
+        classification = _normalize_classification(item.classification)
+        if classification not in ALLOWED_CLASSIFICATIONS:
             decisions.append(
                 ClassificationDecision(
                     fact_type=item.classification,
@@ -124,15 +145,15 @@ def _build_decisions(response: ClassificationResponse) -> list[ClassificationDec
             )
             continue
 
-        passes = item.confidence >= CONFIDENCE_THRESHOLD and item.classification != "unknown"
-        if not passes and item.classification != "unknown" and item.confidence < UNKNOWN_MIN_CONFIDENCE:
+        passes = item.confidence >= CONFIDENCE_THRESHOLD and classification != "unknown"
+        if not passes and classification != "unknown" and item.confidence < UNKNOWN_MIN_CONFIDENCE:
             continue
         decisions.append(
             ClassificationDecision(
-                fact_type=item.classification,
+                fact_type=classification,
                 confidence=item.confidence,
                 reason=item.reason,
-                destination=_route(item.classification, passes),
+                destination=_route(classification, passes),
                 passes_threshold=passes,
             )
         )
@@ -148,6 +169,11 @@ def _route(fact_type: str, passes_threshold: bool) -> str:
     if fact_type in RULE_TYPES:
         return "business_rules"
     return "unknown_facts_queue"
+
+
+def _normalize_classification(value: str) -> str:
+    normalized = value.strip().lower()
+    return INDUSTRIAL_CLASSIFICATION_ALIASES.get(normalized, normalized)
 
 
 def _get_provider() -> str:
