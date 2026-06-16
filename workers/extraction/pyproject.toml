@@ -8,6 +8,7 @@ dependencies = [
   "context-builder-model-gateway",
   "context-builder-schema-registry",
   "context-builder-normalizers",
+  "context-builder-grounding",
   "context-builder-domain",
   "context-builder-observability",
   "pywin32>=306; sys_platform == 'win32'",

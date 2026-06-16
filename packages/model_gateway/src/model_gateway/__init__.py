@@ -3,6 +3,7 @@ import os
 from model_gateway.base import (
     ClassificationItem,
     ClassificationResponse,
+    EntailmentResponse,
     ExtractionResponse,
     ModelGatewayBase,
     ModelProvider,
@@ -30,6 +31,7 @@ def get_model_gateway(provider: str | None = None) -> ModelGatewayBase:
 __all__ = [
     "ClassificationItem",
     "ClassificationResponse",
+    "EntailmentResponse",
     "ExtractionResponse",
     "ModelGatewayBase",
     "ModelProvider",

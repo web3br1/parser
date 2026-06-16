@@ -230,6 +230,7 @@ def complete_extraction_job(
     evidence_span: dict[str, Any] | None,
     fact_records: list[dict[str, Any]],
     rule_record: dict[str, Any] | None,
+    grounding_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     result = _client().rpc(
         "complete_extraction_job",
@@ -244,6 +245,7 @@ def complete_extraction_job(
             "evidence_span": evidence_span,
             "fact_records": fact_records,
             "rule_record": rule_record,
+            "grounding_result": grounding_result,
         },
     ).execute()
     return dict(result.data or {})

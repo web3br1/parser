@@ -1,0 +1,232 @@
+{
+  "schema_version": "grounding_gold_manifest.v1",
+  "notes": "Starter grounding gold slice (clean_document modality). Target is 50-100 labeled cases; expand per docs/07-qa/GROUNDING_GOLD_SLICE.md before flipping the hard gate. Check A runs for real; expected_deterministic is anchored to grounding.verify_evidence. expected_entailment is the human label; stub_entailment (optional) simulates a verifier prediction for the CI metric harness.",
+  "cases": [
+    {
+      "case_id": "price-exact-offsets-pass",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Corte feminino", "price_amount": 120.0, "currency": "BRL"},
+      "chunk_text": "Tabela de servicos. Corte feminino R$120. Escova R$80.",
+      "evidence_quote": "Corte feminino R$120",
+      "evidence_char_start": 20,
+      "evidence_char_end": 40,
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Quote is literal at the given offsets and the chunk states the price plainly."
+    },
+    {
+      "case_id": "price-substring-no-offsets-pass",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Escova", "price_amount": 80.0, "currency": "BRL"},
+      "chunk_text": "Tabela de servicos. Corte feminino R$120. Escova R$80.",
+      "evidence_quote": "Escova R$80",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "No offsets supplied; quote is a unique substring of the chunk."
+    },
+    {
+      "case_id": "price-normalized-curly-quote-pass",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Manicure", "price_amount": 50.0, "currency": "BRL"},
+      "chunk_text": "Promocao: “Manicure R$50” valida ate sexta.",
+      "evidence_quote": "\"Manicure R$50\"",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Chunk uses curly quotes; normalized comparison must still match the straight-quoted evidence."
+    },
+    {
+      "case_id": "price-nbsp-normalized-pass",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Hidratacao", "price_amount": 90.0, "currency": "BRL"},
+      "chunk_text": "Hidratacao R$90 por sessao.",
+      "evidence_quote": "Hidratacao R$90",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Chunk separates words with a non-breaking space; normalization collapses it to a regular space."
+    },
+    {
+      "case_id": "price-quote-not-literal-fail",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Corte", "price_amount": 200.0, "currency": "BRL"},
+      "chunk_text": "Tabela de servicos. Corte feminino R$120. Escova R$80.",
+      "evidence_quote": "Corte feminino R$200",
+      "expected_deterministic": "failed",
+      "expected_entailment": null,
+      "modality": "clean_document",
+      "label_reason": "Model-supplied quote is not literal source text; Check A must reject before entailment."
+    },
+    {
+      "case_id": "price-empty-quote-fail",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Coloracao", "price_amount": 150.0, "currency": "BRL"},
+      "chunk_text": "Coloracao sob consulta.",
+      "evidence_quote": "",
+      "expected_deterministic": "failed",
+      "expected_entailment": null,
+      "modality": "clean_document",
+      "label_reason": "Empty evidence always fails Check A."
+    },
+    {
+      "case_id": "price-offsets-out-of-range-fail",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Barba", "price_amount": 40.0, "currency": "BRL"},
+      "chunk_text": "Barba R$40.",
+      "evidence_quote": "Barba R$40",
+      "evidence_char_start": 100,
+      "evidence_char_end": 110,
+      "expected_deterministic": "failed",
+      "expected_entailment": null,
+      "modality": "clean_document",
+      "label_reason": "Offsets point outside the chunk; Check A must fail on out-of-range offsets."
+    },
+    {
+      "case_id": "price-offsets-reversed-fail",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Sobrancelha", "price_amount": 30.0, "currency": "BRL"},
+      "chunk_text": "Sobrancelha R$30.",
+      "evidence_quote": "Sobrancelha R$30",
+      "evidence_char_start": 16,
+      "evidence_char_end": 0,
+      "expected_deterministic": "failed",
+      "expected_entailment": null,
+      "modality": "clean_document",
+      "label_reason": "Reversed offset ordering is invalid."
+    },
+    {
+      "case_id": "rule-discount-supported-pass",
+      "fact_type": "business_rules",
+      "claim": {"condition": {"min_amount": 200}, "action": {"discount_percentage": 10}},
+      "chunk_text": "Politica: compras acima de R$200 recebem 10% de desconto.",
+      "evidence_quote": "compras acima de R$200 recebem 10% de desconto",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Chunk supports the conditional discount claim exactly."
+    },
+    {
+      "case_id": "rule-discount-negated-fail",
+      "fact_type": "business_rules",
+      "claim": {"condition": {}, "action": {"discount_percentage": 20}},
+      "chunk_text": "Nao oferecemos desconto de 20% em nenhum servico.",
+      "evidence_quote": "desconto de 20%",
+      "expected_deterministic": "passed",
+      "expected_entailment": "failed",
+      "modality": "clean_document",
+      "label_reason": "Quote is literal but the surrounding chunk negates it; a 20% discount is NOT allowed."
+    },
+    {
+      "case_id": "rule-scope-exception-fail",
+      "fact_type": "business_rules",
+      "claim": {"condition": {}, "action": {"free_shipping": true}},
+      "chunk_text": "Frete gratis para todo o Brasil, exceto regiao Norte.",
+      "evidence_quote": "Frete gratis para todo o Brasil",
+      "expected_deterministic": "passed",
+      "expected_entailment": "failed",
+      "modality": "clean_document",
+      "label_reason": "The quote omits the 'exceto regiao Norte' exception; an unconditional free-shipping claim is not entailed."
+    },
+    {
+      "case_id": "rule-conditional-future-fail",
+      "fact_type": "business_rules",
+      "claim": {"condition": {}, "action": {"cancellation_fee_percentage": 0}},
+      "chunk_text": "Cancelamento sera gratuito apenas a partir de janeiro de 2027.",
+      "evidence_quote": "Cancelamento sera gratuito",
+      "expected_deterministic": "passed",
+      "expected_entailment": "failed",
+      "modality": "clean_document",
+      "label_reason": "Temporal qualifier ('apenas a partir de janeiro de 2027') makes the current-state claim unsupported."
+    },
+    {
+      "case_id": "rule-normalized-date-pass",
+      "fact_type": "business_rules",
+      "claim": {"condition": {"valid_until": "2026-06-30"}, "action": {"discount_percentage": 15}},
+      "chunk_text": "Desconto de 15% valido ate o fim de junho.",
+      "evidence_quote": "Desconto de 15% valido ate o fim de junho",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Normalizer converted 'fim de junho' to an ISO date; entailment checks the month-level meaning, not literal ISO text."
+    },
+    {
+      "case_id": "rule-quote-not-literal-fail",
+      "fact_type": "business_rules",
+      "claim": {"condition": {}, "action": {"discount_percentage": 50}},
+      "chunk_text": "Politica: compras acima de R$200 recebem 10% de desconto.",
+      "evidence_quote": "50% de desconto para todos",
+      "expected_deterministic": "failed",
+      "expected_entailment": null,
+      "modality": "clean_document",
+      "label_reason": "Fabricated evidence not present in the chunk; required type must be blocked by Check A."
+    },
+    {
+      "case_id": "rule-abstain-ambiguous",
+      "fact_type": "business_rules",
+      "claim": {"condition": {}, "action": {"discount_percentage": 10}},
+      "chunk_text": "Podem existir descontos promocionais ocasionais.",
+      "evidence_quote": "descontos promocionais ocasionais",
+      "expected_deterministic": "passed",
+      "expected_entailment": "abstained",
+      "modality": "clean_document",
+      "label_reason": "Chunk is too vague to confirm or deny a specific 10% rule; a verifier may reasonably abstain."
+    },
+    {
+      "case_id": "hours-warn-only-pass",
+      "fact_type": "business_hours",
+      "claim": {"day_of_week": "mon", "open_time": "09:00", "close_time": "18:00"},
+      "chunk_text": "Funcionamento: segunda a sexta das 9h as 18h.",
+      "evidence_quote": "segunda a sexta das 9h as 18h",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Warn-only type; quote literal and supported. Not counted in required-type entailment metrics."
+    },
+    {
+      "case_id": "contact-warn-only-pass",
+      "fact_type": "contact_info",
+      "claim": {"phone": "(11) 99999-0000"},
+      "chunk_text": "Fale conosco: (11) 99999-0000.",
+      "evidence_quote": "(11) 99999-0000",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Warn-only type; literal phone evidence present."
+    },
+    {
+      "case_id": "faq-warn-only-not-literal",
+      "fact_type": "faq_item",
+      "claim": {"question": "Aceitam pix?", "answer": "Sim"},
+      "chunk_text": "Formas de pagamento: cartao e dinheiro.",
+      "evidence_quote": "Aceitamos pix",
+      "expected_deterministic": "failed",
+      "expected_entailment": null,
+      "modality": "clean_document",
+      "label_reason": "Warn-only type with non-literal evidence; recorded as a warning, never blocks."
+    },
+    {
+      "case_id": "payment-warn-only-pass",
+      "fact_type": "payment_method",
+      "claim": {"method": "cartao de credito"},
+      "chunk_text": "Aceitamos cartao de credito e debito.",
+      "evidence_quote": "cartao de credito",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Warn-only type; literal and supported."
+    },
+    {
+      "case_id": "price-trailing-whitespace-normalized-pass",
+      "fact_type": "service_price",
+      "claim": {"service_name": "Pedicure", "price_amount": 60.0, "currency": "BRL"},
+      "chunk_text": "Pedicure    R$60 a vista.",
+      "evidence_quote": "Pedicure R$60",
+      "expected_deterministic": "passed",
+      "expected_entailment": "passed",
+      "modality": "clean_document",
+      "label_reason": "Chunk has collapsed repeated spaces; normalization must match the single-spaced evidence."
+    }
+  ]
+}

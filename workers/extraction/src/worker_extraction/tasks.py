@@ -9,6 +9,7 @@ from celery import Task
 from celery.exceptions import Retry
 
 from worker_extraction import db
+from worker_extraction import grounding as grnd
 from worker_extraction.celery_app import (
     app,
     extraction_task_soft_time_limit,
@@ -248,6 +249,54 @@ def _extract_fact_impl(
                 "records_created": complete_result.get("records_created", 0),
             }
 
+        # 8.5 GROUNDING (Truth Contract gate, flag-gated, warn-only) ----------
+        # parse_artifact_created -> truth_evaluated. Default OFF preserves prior
+        # behavior. Only required-grounding types can route a record to review.
+        grounding_payload: dict[str, Any] | None = None
+        if grnd.grounding_enabled():
+            grounding_result = grnd.evaluate_for_extraction(
+                output=output,
+                fact_type=fact_type,
+                destination=destination,
+                chunk_text=chunk.content,
+                span_input=span_input,
+            )
+            grounding_payload = grnd.to_payload(grounding_result)
+            if grnd.blocks_record(grounding_result):
+                complete_result = _complete_unknown(
+                    job_id=job_id,
+                    chunk_id=chunk_id,
+                    workspace_id=workspace_id,
+                    source_id=source_id,
+                    idempotency_key=idempotency_key,
+                    raw_text=chunk.content[:2000],
+                    suggested_fact_type=fact_type,
+                    confidence=classification_confidence,
+                    metadata={
+                        "reason": grounding_result.grounding_reason,
+                        "fact_type": fact_type,
+                        "grounding_status": grounding_result.grounding_status,
+                    },
+                    grounding_result=grounding_payload,
+                )
+                source_status = _finalize_source_state(
+                    source_id=source_id, workspace_id=workspace_id
+                )
+                logger.info(
+                    "grounding_routed_to_review",
+                    chunk_id=chunk_id,
+                    fact_type=fact_type,
+                    reason=grounding_result.grounding_reason,
+                )
+                return {
+                    "status": "succeeded",
+                    "chunk_status": "needs_review",
+                    "reason": grounding_result.grounding_reason,
+                    "fact_type": fact_type,
+                    "source_status": source_status,
+                    "records_created": complete_result.get("records_created", 0),
+                }
+
         # 9. PERSIST (atomic RPC) ---------------------------------------------
         complete_result = _complete_success(
             job_id=job_id,
@@ -261,6 +310,7 @@ def _extract_fact_impl(
             chunk_text=chunk.content,
             output=output,
             evidence_span=_evidence_payload(span_input),
+            grounding_result=grounding_payload,
         )
         records_created = int(complete_result.get("records_created", 0))
         source_status = _finalize_source_state(source_id=source_id, workspace_id=workspace_id)
@@ -313,6 +363,7 @@ def _complete_unknown(
     suggested_fact_type: str | None,
     confidence: float,
     metadata: dict[str, Any],
+    grounding_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return db.complete_extraction_job(
         job_id=job_id,
@@ -330,6 +381,7 @@ def _complete_unknown(
         evidence_span=None,
         fact_records=[],
         rule_record=None,
+        grounding_result=grounding_result,
     )
 
 
@@ -346,6 +398,7 @@ def _complete_success(
     chunk_text: str,
     output: ExtractionOutput,
     evidence_span: dict[str, Any] | None,
+    grounding_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     fact_records: list[dict[str, Any]] = []
     rule_record: dict[str, Any] | None = None
@@ -404,6 +457,7 @@ def _complete_success(
         evidence_span=evidence_span,
         fact_records=fact_records,
         rule_record=rule_record,
+        grounding_result=grounding_result,
     )
 
 

@@ -70,6 +70,13 @@ for each chunk:
     ↓
     if schema_validation_fails after retry:
       → unknown_facts_queue
+    ↓
+    grounding(chunk, claim, evidence) ← Truth Contract: parse_artifact_created → truth_evaluated (flag GROUNDING_ENABLED)
+    │  Check A determinístico  → prova que evidence_quote é texto literal do chunk (NFC, aspas, NBSP, whitespace)
+    │  Check B entailment      → verificador independente julga suporte semântico contra o chunk inteiro
+    │  required type + falha/abstenção → unknown_facts_queue (needs_review), NÃO vira registro confiável
+    │  warn-only type          → mantém o registro + grava grounding_results (sinal visível à revisão)
+    │  ver /docs/03-pipeline/GROUNDING_WORKER.md e /docs/07-qa/GROUNDING_GOLD_SLICE.md
   ↓
   log_token_usage()                 → token_usage_log: workspace_id, operation, model, tokens, cost
   ↓

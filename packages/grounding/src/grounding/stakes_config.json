@@ -1,0 +1,29 @@
+{
+  "config_version": "stakes_config.v1",
+  "profiles": {
+    "default": {
+      "required_grounding_types": [
+        "business_rules",
+        "service_price"
+      ],
+      "warn_only_grounding_types": [
+        "business_hours",
+        "payment_method",
+        "contact_info",
+        "faq_item"
+      ]
+    },
+    "industrial": {
+      "required_grounding_types": [
+        "business_rules",
+        "service_price",
+        "controlled_document_metadata",
+        "industrial_requirement"
+      ],
+      "warn_only_grounding_types": [
+        "industrial_responsibility",
+        "industrial_relation"
+      ]
+    }
+  }
+}

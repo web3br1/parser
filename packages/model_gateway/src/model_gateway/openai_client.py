@@ -9,9 +9,11 @@ from openai import OpenAI
 from model_gateway.base import (
     ClassificationItem,
     ClassificationResponse,
+    EntailmentResponse,
     ExtractionResponse,
     ModelGatewayBase,
     ModelRunConfig,
+    render_entailment_prompt,
 )
 
 CLASSIFICATION_JSON_SCHEMA: dict[str, Any] = {
@@ -132,6 +134,62 @@ class OpenAIModelGateway(ModelGatewayBase):
         input_tokens = usage.prompt_tokens if usage else 0
         output_tokens = usage.completion_tokens if usage else 0
         return ExtractionResponse(
+            model_name=run_config.model,
+            prompt_version=prompt_version,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            raw_response=raw,
+            provider=run_config.provider,
+            model=run_config.model,
+            latency_ms=latency_ms,
+            raw_response_hash=sha256(raw.encode()).hexdigest(),
+            estimated_cost_usd=_estimated_cost_usd(run_config.model, input_tokens, output_tokens),
+        )
+
+
+    def verify_entailment(
+        self,
+        claim_payload: dict[str, Any],
+        fact_type: str,
+        chunk_text: str,
+        verified_quote: str,
+        location: dict[str, Any],
+        prompt_template: str,
+        prompt_version: str,
+        config: ModelRunConfig | None = None,
+    ) -> EntailmentResponse:
+        """Native independent entailment verification (grounding Check B).
+
+        Uses json_object response format at temperature 0. The verifier only
+        receives grounding inputs and never extractor rationale, prompt
+        internals, or self-reported confidence.
+        """
+        model = os.environ.get("GROUNDING_MODEL", os.environ.get("EXTRACTION_MODEL", "gpt-4o"))
+        run_config = config or _default_config(model)
+        _ensure_openai(run_config)
+        prompt = render_entailment_prompt(
+            prompt_template,
+            claim_payload=claim_payload,
+            fact_type=fact_type,
+            chunk_text=chunk_text,
+            verified_quote=verified_quote,
+            location=location,
+        )
+        started = perf_counter()
+        response = self._client.chat.completions.create(
+            model=run_config.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=run_config.temperature,
+            max_completion_tokens=run_config.max_output_tokens,
+            timeout=run_config.timeout_seconds,
+        )
+        latency_ms = _latency_ms(started)
+        raw = response.choices[0].message.content or "{}"
+        usage = response.usage
+        input_tokens = usage.prompt_tokens if usage else 0
+        output_tokens = usage.completion_tokens if usage else 0
+        return EntailmentResponse(
             model_name=run_config.model,
             prompt_version=prompt_version,
             input_tokens=input_tokens,
